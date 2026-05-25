@@ -1,0 +1,319 @@
+﻿import type {
+  AiReceiptHistory,
+  AiReceiptHistoryDetail,
+  AiUsageSummary,
+  AppSettings,
+  AuthSession,
+  Budget,
+  Category1,
+  Category2,
+  DashboardLayoutItem,
+  Income,
+  Invoice,
+  ReceiptFlatRow,
+  ReceiptForm,
+  ReceiptSearchCondition,
+  SalaryCategory
+} from "./types";
+
+type RuntimeFrontendConfig = {
+  apiBaseUrl?: string;
+  apiKey?: string;
+  VITE_API_BASE_URL?: string;
+  VITE_API_KEY?: string;
+};
+
+declare global {
+  interface Window {
+    __KAKEIBO_CONFIG__?: RuntimeFrontendConfig;
+  }
+}
+
+function runtimeConfig(): RuntimeFrontendConfig {
+  if (typeof window === "undefined") return {};
+  return window.__KAKEIBO_CONFIG__ || {};
+}
+
+function normalizeApiBaseUrl(value: string | undefined): string {
+  return (value || "").replace(/\/+$/, "");
+}
+
+const RUNTIME_CONFIG = runtimeConfig();
+const API_BASE_URL = normalizeApiBaseUrl(
+  RUNTIME_CONFIG.apiBaseUrl ||
+    RUNTIME_CONFIG.VITE_API_BASE_URL ||
+    import.meta.env?.VITE_API_BASE_URL ||
+    ""
+);
+const APP_API_KEY =
+  RUNTIME_CONFIG.apiKey ||
+  RUNTIME_CONFIG.VITE_API_KEY ||
+  import.meta.env?.VITE_API_KEY ||
+  "";
+const TOKEN_KEY = "kakeibo.auth.token";
+const SESSION_KEY = "kakeibo.auth.session";
+
+export function apiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
+// 本番APIが別ドメインの場合だけVITE_API_BASE_URLで上書きする。
+// API Gateway/Lambdaを直接公開する場合の簡易APIキー。
+// JWTはログアウトするまで同じ端末に保持する。
+// 画面表示用のユーザー情報もJWTとは別に保存する。
+
+type ApiEnvelope<T> = {
+  statusCode?: number;
+  body?: T | string | null;
+  errorMessage?: string;
+  detail?: string;
+  error?: string;
+  message?: string;
+};
+
+/**
+ * 既存APIのbody値を必要に応じてJSONとして展開する。
+ *
+ * Args:
+ *   value: APIレスポンスbody、またはすでに展開済みの値。
+ *
+ * Returns:
+ *   T | null: 展開後の値。空の場合はnull。
+ */
+function parseMaybeJson<T>(value: T | string | null | undefined): T | null {
+  // 旧APIはbodyをJSON文字列で返すことがあるため、必要な時だけ展開する。
+  if (typeof value !== "string") return value ?? null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return value as T;
+  }
+}
+
+/**
+ * 保存済みJWTからAPI送信用の認証ヘッダーを作る。
+ *
+ * Returns:
+ *   Record<string, string>: Authorizationヘッダー。未ログイン時は空オブジェクト。
+ */
+function authHeaders(): Record<string, string> {
+  // すべての業務APIへ保存済みJWTを自動で付ける。
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const session = getStoredSession();
+  if (session?.userId) headers["x-kakeibo-user-id"] = session.userId;
+  if (session?.email || session?.username) headers["x-kakeibo-user-email"] = session.email || session.username;
+  if (session?.username) headers["x-kakeibo-user-name"] = session.username;
+  if (session?.nickname) headers["x-kakeibo-user-nickname"] = session.nickname;
+  if (APP_API_KEY) headers["x-api-key"] = APP_API_KEY;
+  return headers;
+}
+
+/**
+ * fetchを共通レスポンス形式に合わせて実行する。
+ *
+ * Args:
+ *   path: APIパス。
+ *   init: fetchへ渡す追加設定。
+ *
+ * Returns:
+ *   Promise<T>: 画面側で扱う型付きレスポンス。
+ */
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // fetchの低レベル差異を吸収し、画面側は型付きの値だけ受け取る。
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  Object.entries(authHeaders()).forEach(([key, value]) => headers.set(key, value));
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers
+  });
+  const payload = await response.json().catch(() => null) as ApiEnvelope<T> | T | null;
+  const envelope = payload && typeof payload === "object" && "statusCode" in payload ? payload as ApiEnvelope<T> : null;
+  // FastAPIのHTTPステータスと既存APIのstatusCodeの両方を見る。
+  const statusCode = Number(envelope?.statusCode || response.status || 200);
+  const body = envelope ? parseMaybeJson<T>(envelope.body) : payload as T;
+
+  if (!response.ok || statusCode >= 400) {
+    const errorBody = body && typeof body === "object" ? body as Record<string, unknown> : {};
+    const message =
+      String(errorBody.errorMessage || errorBody.error || envelope?.errorMessage || envelope?.detail || envelope?.error || envelope?.message || "APIエラー");
+    throw new Error(message);
+  }
+
+  return (body ?? ({} as T)) as T;
+}
+
+/**
+ * POSTリクエストをJSON本文つきで送信する。
+ *
+ * Args:
+ *   path: APIパス。
+ *   body: JSON化して送信する本文。
+ *
+ * Returns:
+ *   Promise<T>: APIレスポンス。
+ */
+function post<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+/**
+ * PUTリクエストをJSON本文つきで送信する。
+ *
+ * Args:
+ *   path: APIパス。
+ *   body: JSON化して送信する本文。
+ *
+ * Returns:
+ *   Promise<T>: APIレスポンス。
+ */
+function put<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: "PUT",
+    body: JSON.stringify(body)
+  });
+}
+
+/**
+ * GETリクエストを送信する。
+ *
+ * Args:
+ *   path: APIパス。
+ *
+ * Returns:
+ *   Promise<T>: APIレスポンス。
+ */
+function get<T>(path: string): Promise<T> {
+  return request<T>(path);
+}
+
+/**
+ * localStorageから保存済みログインセッションを取得する。
+ *
+ * Returns:
+ *   AuthSession | null: 保存済みセッション。壊れている場合はnull。
+ */
+export function getStoredSession(): AuthSession | null {
+  // localStorageが壊れている場合は未ログインとして扱う。
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthSession;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ログインセッションをlocalStorageへ保存、または削除する。
+ *
+ * Args:
+ *   session: 保存するセッション。nullの場合はログアウトとして削除する。
+ */
+export function storeSession(session: AuthSession | null): void {
+  // nullは明示ログアウトなので、保存済み情報を完全に消す。
+  if (!session) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+  localStorage.setItem(TOKEN_KEY, session.token);
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+/**
+ * 画面で使うAPIを機能ごとにまとめた薄いクライアント。
+ *
+ * 各メソッドはrequest/post/put/getを通して、認証ヘッダーとレスポンス変換を共通化する。
+ */
+export const api = {
+  // 画面で使うAPIを機能ごとにまとめる薄いクライアント。
+  auth: {
+    login: (email: string, password: string) => post<AuthSession>("/user/login", { email, password }),
+    register: (email: string, password: string) =>
+      post<AuthSession>("/user/register", { email, password }),
+    requestPasswordReset: (email: string) =>
+      post<{ ok: boolean; message?: string; resetToken?: string; expiresInMinutes?: number }>(
+        "/user/password-reset/request",
+        { email }
+      ),
+    resetPassword: (email: string, resetToken: string, newPassword: string) =>
+      post<{ ok: boolean; message?: string }>("/user/password-reset/confirm", { email, resetToken, newPassword }),
+    me: (token: string) => post<AuthSession | null>("/user/me", { token }),
+    logout: () => post<{ ok: boolean }>("/user/logout", {})
+  },
+  settings: {
+    get: () => get<AppSettings | null>("/app/settings"),
+    save: (settings: AppSettings) => post<{ ok: boolean }>("/app/settings", settings)
+  },
+  dashboard: {
+    getLayout: () => get<DashboardLayoutItem[] | null>("/dashboard/layout"),
+    saveLayout: (layout: DashboardLayoutItem[]) => post<{ ok: boolean }>("/dashboard/layout", { layout })
+  },
+  master: {
+    category1: () => get<Category1[]>("/receipt/getcategory1"),
+    category2: () => get<Category2[]>("/receipt/getcategory2"),
+    salaryCategories: () => get<SalaryCategory[]>("/receipt/getsalarycategory"),
+    addCategory1: (category1_name: string) => post("/receipt/addcategory1", { category1_name }),
+    deleteCategory1: (category1_name: string) => put("/receipt/deletecategory1", { category1_name }),
+    addCategory2: (category1_name: string, category2_name: string, tax_rate: number) =>
+      post("/receipt/addcategory2", { category1_name, category2_name, tax_rate }),
+    deleteCategory2: (category1_name: string, category2_name: string) =>
+      put("/receipt/deletecategory2", { category1_name, category2_name }),
+    addSalaryCategory: (salary_category_name: string) => post("/receipt/addsalarycategory", { salary_category_name }),
+    deleteSalaryCategory: (salary_category_name: string) => put("/receipt/deletesalarycategory", { salary_category_name }),
+    supplierByInvoice: (invoiceNo: string) => get<Array<{ supplierName: string; supplierLogo?: string; taxFlag?: string | number }>>(
+      `/receipt/getSupplierByInvoice?invoiceNo=${encodeURIComponent(invoiceNo)}`
+    ),
+    invoices: () => get<Invoice[]>("/receipt/getinvoice"),
+    updateInvoice: (invoice: Invoice) => post<Invoice[]>("/receipt/updateinvoice", invoice),
+    deleteInvoice: (invoiceRegistrationNumber: string) => put("/receipt/deleteinvoice", { invoiceRegistrationNumber })
+  },
+  receipt: {
+    create: (receiptInfo: ReceiptForm) => post<{ message: string; receiptId: string }>(
+      "/receipt/newReceiptRegistration",
+      { receiptInfo: { ...receiptInfo, receiptDetailCount: receiptInfo.receiptDetails.length } }
+    ),
+    search: (condition: ReceiptSearchCondition) => post<{ receiptDetails: ReceiptFlatRow[] }>(
+      "/receipt/receiptReference",
+      condition
+    ),
+    prepareExport: (type: "excel" | "pdf", rows: ReceiptFlatRow[]) => post<{ url: string }>(
+      "/export/receipt/prepare",
+      { type, rows }
+    ),
+    update: (receiptInfo: ReceiptForm) => put<{ message: string }>(
+      "/receipt/ReceiptUpdateDelete",
+      { updateDeleteType: "update", receiptInfo: { ...receiptInfo, receiptDetailCount: receiptInfo.receiptDetails.length } }
+    ),
+    remove: (receiptId: string) => put<{ message: string }>("/receipt/ReceiptUpdateDelete", { updateDeleteType: "delete", receiptId })
+  },
+  income: {
+    list: (month: string) => get<Income[]>(`/receipt/getincome?month=${encodeURIComponent(month)}`),
+    create: (salaryInfo: Income) => post("/receipt/salaryregistration", { salaryInfo }),
+    update: (income: Income) => put("/receipt/updateincome", income),
+    remove: (id: number) => put("/receipt/deleteincome", { id })
+  },
+  budget: {
+    list: () => get<Budget[]>("/budget/budgets"),
+    save: (budgets: Budget[]) => post<{ ok: boolean }>("/budget/budgets", { budgets })
+  },
+  ai: {
+    usage: () => get<AiUsageSummary>("/ai/receipt/usage"),
+    analyze: (body: Record<string, unknown>) => post<Record<string, unknown>>("/ai/receipt/analyze", body),
+    history: () => get<AiReceiptHistory[]>("/ai/receipt/history"),
+    historyDetail: (analysisId: string) => get<AiReceiptHistoryDetail>(`/ai/receipt/history/${encodeURIComponent(analysisId)}`),
+    saveFinal: (analysisId: string, receiptInfo: ReceiptForm, receiptId?: string) =>
+      post<{ ok: boolean; receiptId?: string }>("/ai/receipt/history/final", { analysisId, receiptInfo, receiptId })
+  }
+};

@@ -1,0 +1,5 @@
+build/
+dist/
+*.spec
+frontend-config.json
+frontend-react/.npm-cache/
