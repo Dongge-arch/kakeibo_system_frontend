@@ -52,6 +52,8 @@ const APP_API_KEY =
   "";
 const TOKEN_KEY = "kakeibo.auth.token";
 const SESSION_KEY = "kakeibo.auth.session";
+const SESSION_COOKIE_KEY = "kakeibo_auth_session";
+const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 
 export function apiUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
@@ -100,10 +102,10 @@ function parseMaybeJson<T>(value: T | string | null | undefined): T | null {
  */
 function authHeaders(): Record<string, string> {
   // すべての業務APIへ保存済みJWTを自動で付ける。
-  const token = localStorage.getItem(TOKEN_KEY);
+  const session = getStoredSession();
+  const token = localStorage.getItem(TOKEN_KEY) || session?.token;
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  const session = getStoredSession();
   if (session?.userId) headers["x-kakeibo-user-id"] = session.userId;
   if (session?.email || session?.username) headers["x-kakeibo-user-email"] = session.email || session.username;
   if (session?.username) headers["x-kakeibo-user-name"] = session.username;
@@ -123,6 +125,9 @@ function authHeaders(): Record<string, string> {
  *   Promise<T>: 画面側で扱う型付きレスポンス。
  */
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!API_BASE_URL) {
+    throw new Error("API接続先が設定されていません。config.js または frontend-config.json を確認してください。");
+  }
   // fetchの低レベル差異を吸収し、画面側は型付きの値だけ受け取る。
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("Content-Type")) {
@@ -130,10 +135,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   Object.entries(authHeaders()).forEach(([key, value]) => headers.set(key, value));
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers
+    });
+  } catch {
+    throw new Error(`APIに接続できませんでした。通信環境、CORS、API URLを確認してください。対象: ${path}`);
+  }
   const payload = await response.json().catch(() => null) as ApiEnvelope<T> | T | null;
   const envelope = payload && typeof payload === "object" && "statusCode" in payload ? payload as ApiEnvelope<T> : null;
   // FastAPIのHTTPステータスと既存APIのstatusCodeの両方を見る。
@@ -143,8 +153,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok || statusCode >= 400) {
     const errorBody = body && typeof body === "object" ? body as Record<string, unknown> : {};
     const message =
-      String(errorBody.errorMessage || errorBody.error || envelope?.errorMessage || envelope?.detail || envelope?.error || envelope?.message || "APIエラー");
-    throw new Error(message);
+      String(errorBody.errorMessage || errorBody.error || envelope?.errorMessage || envelope?.detail || envelope?.error || envelope?.message || "APIエラーが発生しました。");
+    throw new Error(`${message}（${statusCode} / ${path}）`);
   }
 
   return (body ?? ({} as T)) as T;
@@ -197,6 +207,32 @@ function get<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
+function readSessionCookie(): AuthSession | null {
+  if (typeof document === "undefined") return null;
+  const prefix = `${SESSION_COOKIE_KEY}=`;
+  const raw = document.cookie
+    .split("; ")
+    .find(part => part.startsWith(prefix))
+    ?.slice(prefix.length);
+  if (!raw) return null;
+  try {
+    return JSON.parse(decodeURIComponent(raw)) as AuthSession;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCookie(session: AuthSession): void {
+  if (typeof document === "undefined") return;
+  const value = encodeURIComponent(JSON.stringify(session));
+  document.cookie = `${SESSION_COOKIE_KEY}=${value}; Max-Age=${SESSION_COOKIE_MAX_AGE}; Path=/; SameSite=Lax`;
+}
+
+function clearSessionCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_COOKIE_KEY}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
 /**
  * localStorageから保存済みログインセッションを取得する。
  *
@@ -206,10 +242,24 @@ function get<T>(path: string): Promise<T> {
 export function getStoredSession(): AuthSession | null {
   // localStorageが壊れている場合は未ログインとして扱う。
   const raw = localStorage.getItem(SESSION_KEY);
-  if (!raw) return null;
+  if (!raw) {
+    const cookieSession = readSessionCookie();
+    if (cookieSession?.token) {
+      localStorage.setItem(TOKEN_KEY, cookieSession.token);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(cookieSession));
+      return cookieSession;
+    }
+    return null;
+  }
   try {
     return JSON.parse(raw) as AuthSession;
   } catch {
+    const cookieSession = readSessionCookie();
+    if (cookieSession?.token) {
+      localStorage.setItem(TOKEN_KEY, cookieSession.token);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(cookieSession));
+      return cookieSession;
+    }
     return null;
   }
 }
@@ -225,10 +275,12 @@ export function storeSession(session: AuthSession | null): void {
   if (!session) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SESSION_KEY);
+    clearSessionCookie();
     return;
   }
   localStorage.setItem(TOKEN_KEY, session.token);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  writeSessionCookie(session);
 }
 
 /**
@@ -271,6 +323,11 @@ export const api = {
     deleteCategory2: (category1_name: string, category2_name: string) =>
       put("/receipt/deletecategory2", { category1_name, category2_name }),
     addSalaryCategory: (salary_category_name: string) => post("/receipt/addsalarycategory", { salary_category_name }),
+    addDefaultCategories: (payload: {
+      category1: string[];
+      category2: Array<{ category1_name: string; category2_name: string; tax_rate: number }>;
+      salaryCategories: string[];
+    }) => post("/receipt/adddefaultcategories", payload),
     deleteSalaryCategory: (salary_category_name: string) => put("/receipt/deletesalarycategory", { salary_category_name }),
     supplierByInvoice: (invoiceNo: string) => get<Array<{ supplierName: string; supplierLogo?: string; taxFlag?: string | number }>>(
       `/receipt/getSupplierByInvoice?invoiceNo=${encodeURIComponent(invoiceNo)}`

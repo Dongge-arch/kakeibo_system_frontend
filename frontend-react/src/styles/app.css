@@ -238,11 +238,19 @@ img {
 
 :root[data-theme="dark"] .nav-link:hover,
 :root[data-theme="dark"] .nav-link.is-active {
-  background: #2a2c27;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel-strong) 86%, white);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
 }
 
 .nav-caret {
   color: var(--teal);
+}
+
+.mobile-menu-button,
+.mobile-menu-close,
+.mobile-menu-backdrop {
+  display: none;
 }
 
 .workbench {
@@ -273,6 +281,19 @@ img {
 .topbar h1 {
   font-size: clamp(24px, 2.8vw, 34px);
   line-height: 1.15;
+}
+
+.loading-strip {
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, var(--line));
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  padding: 0 14px;
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal-2) 72%, var(--panel));
+  display: flex;
+  align-items: center;
+  font-weight: 800;
 }
 
 .eyebrow,
@@ -327,6 +348,19 @@ img {
   border-radius: var(--radius);
   padding: clamp(16px, 2.4vw, 24px);
   box-shadow: var(--shadow);
+}
+
+.panel-note {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.category-default-panel {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 58%),
+    color-mix(in srgb, var(--panel) 96%, white);
 }
 
 :root[data-theme="dark"] .panel {
@@ -462,6 +496,16 @@ img {
   background: #fff;
 }
 
+:root[data-theme="dark"] .month-step-button:hover,
+:root[data-theme="dark"] .month-now-button:hover,
+:root[data-theme="dark"] .dashboard-year-row button:hover,
+:root[data-theme="dark"] .dashboard-month-grid button:hover,
+:root[data-theme="dark"] .dashboard-month-grid button.is-active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--teal) 65%, white);
+  background: color-mix(in srgb, var(--panel-strong) 84%, white);
+}
+
 .dashboard-action-row {
   justify-content: flex-end;
 }
@@ -513,6 +557,13 @@ img {
   background: var(--panel);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+
+.dashboard-widget--clock {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%),
+    var(--panel);
 }
 
 .dashboard-widget--small {
@@ -592,7 +643,7 @@ img {
 }
 
 .clock-widget strong {
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: clamp(34px, 4vw, 48px);
   line-height: 1;
 }
 
@@ -643,6 +694,62 @@ img {
   color: var(--muted);
   font-size: 11px;
   text-align: center;
+}
+
+.calendar-widget {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendar-cell {
+  min-height: 78px;
+  border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+  border-radius: var(--radius);
+  padding: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--surface));
+  display: grid;
+  gap: 3px;
+  align-content: start;
+}
+
+.calendar-cell.is-muted {
+  opacity: 0.45;
+}
+
+.calendar-cell strong {
+  font-size: 13px;
+}
+
+.calendar-income,
+.calendar-expense {
+  min-height: 16px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.calendar-income {
+  color: var(--teal);
+}
+
+.calendar-expense {
+  color: var(--coral);
 }
 
 .metric-card {
@@ -833,6 +940,7 @@ input,
 select,
 textarea,
 .prefix-input {
+  min-width: 0;
   min-height: 42px;
   height: 42px;
   width: 100%;
@@ -1033,16 +1141,16 @@ textarea:focus,
 .line-table-head,
 .line-row {
   width: max-content;
-  min-width: min(980px, 100%);
+  min-width: min(1080px, 100%);
   display: grid;
   grid-template-columns:
     minmax(180px, 1.4fr)
     minmax(150px, 1fr)
     minmax(150px, 1fr)
-    90px
-    110px
-    100px
-    110px
+    112px
+    112px
+    112px
+    112px
     42px;
   gap: 8px;
   align-items: center;
@@ -1052,7 +1160,22 @@ textarea:focus,
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
-  padding: 0 4px 8px;
+  padding: 0 0 8px;
+}
+
+.line-table-head span {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.line-table-head span:nth-child(n + 4):nth-child(-n + 7) {
+  justify-content: flex-end;
+}
+
+.line-table-head span:last-child {
+  padding: 0;
 }
 
 .line-row {
@@ -1060,10 +1183,15 @@ textarea:focus,
   border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 
+.line-field {
+  min-width: 0;
+  display: block;
+}
+
 .line-row output {
   min-height: 42px;
   border-radius: var(--radius);
-  padding: 0 10px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: end;
@@ -1190,6 +1318,11 @@ pre {
   border: 0;
   min-height: 38px;
   padding: 0;
+}
+
+:root[data-theme="dark"] .search-box {
+  color: var(--text);
+  background: var(--panel);
 }
 
 .receipt-list-grid,
@@ -1509,6 +1642,55 @@ pre {
   gap: 8px;
 }
 
+.budget-note {
+  margin-bottom: 14px;
+}
+
+.budget-tile--group {
+  align-content: start;
+  gap: 12px;
+}
+
+.budget-expand-button {
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  font-weight: 900;
+}
+
+.budget-main-input,
+.budget-sub-list label {
+  display: grid;
+  gap: 6px;
+}
+
+.budget-main-input input,
+.budget-sub-list input {
+  text-align: right;
+}
+
+.budget-tile em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.budget-sub-list {
+  max-height: 310px;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
 .budget-tile span,
 .budget-tile strong {
   display: block;
@@ -1618,6 +1800,54 @@ pre {
   max-width: 100%;
 }
 
+.line-row input[type="number"] {
+  text-align: right;
+}
+
+:root[data-device="desktop"][data-orientation="landscape"] .dashboard-widget-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+:root[data-device="mobile"] .dashboard-widget-grid,
+:root[data-device="mobile"] .metric-grid,
+:root[data-device="mobile"] .token-grid,
+:root[data-device="mobile"] .form-grid,
+:root[data-device="mobile"] .form-grid--receipt,
+:root[data-device="mobile"] .receipt-search-grid {
+  grid-template-columns: 1fr;
+}
+
+:root[data-device="mobile"] .dashboard-widget--small,
+:root[data-device="mobile"] .dashboard-widget--medium,
+:root[data-device="mobile"] .dashboard-widget--wide,
+:root[data-device="mobile"] .dashboard-widget--large {
+  grid-column: 1 / -1;
+}
+
+:root[data-device="mobile"] .line-table-head {
+  display: none;
+}
+
+:root[data-device="mobile"] .line-row {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 1fr;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+
+:root[data-device="mobile"] .calendar-cell {
+  min-height: 64px;
+  padding: 6px;
+}
+
+:root[data-device="mobile"] .calendar-income,
+:root[data-device="mobile"] .calendar-expense {
+  font-size: 10px;
+}
+
 .place-tax-badge.is-included {
   color: var(--teal);
   background: var(--teal-2);
@@ -1687,6 +1917,10 @@ pre {
   grid-template-columns: minmax(260px, 0.95fr) minmax(0, 1.05fr);
   gap: 16px;
   align-items: start;
+}
+
+.ai-library-detail--no-image {
+  grid-template-columns: 1fr;
 }
 
 .library-text-pane {
@@ -1914,6 +2148,7 @@ pre {
 }
 
 :root[data-theme="dark"] .auth-input-wrap {
+  color: var(--text);
   background: #171815;
 }
 
@@ -2025,6 +2260,20 @@ pre {
 
 .setting-card.is-muted {
   background: var(--panel);
+}
+
+.autosave-badge {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--teal) 34%, var(--line));
+  border-radius: var(--radius);
+  padding: 0 12px;
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal-2) 72%, var(--panel));
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .segmented-control {
@@ -2461,39 +2710,117 @@ code {
   .side-rail {
     position: fixed;
     left: 0;
-    right: 0;
-    z-index: 20;
+    top: 0;
     bottom: 0;
-    top: auto;
-    height: auto;
-    padding: 8px;
-    border-right: 0;
-    border-top: 1px solid var(--line);
+    z-index: 40;
+    width: min(86vw, 360px);
+    max-height: none;
+    height: 100dvh;
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0 14px 14px 0;
+    box-shadow: 0 22px 58px rgba(38, 35, 28, 0.22);
+    transform: translateX(-105%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+  }
+
+  .app-shell.is-mobile-menu-open .side-rail {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mobile-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: block;
+    border: 0;
+    background: rgba(20, 22, 20, 0.28);
+  }
+
+  .mobile-menu-button,
+  .mobile-menu-close {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+
+  .mobile-menu-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
   }
 
   .brand-mark {
-    display: none;
+    padding-right: 54px;
   }
 
   .nav-stack {
-    display: flex;
-    overflow-x: auto;
+    display: grid;
+    gap: 12px;
+    overflow: visible;
   }
 
   .nav-group {
-    display: contents;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding-bottom: 12px;
   }
 
+  .nav-group-label {
+    grid-column: 1 / -1;
+    padding: 0 4px;
+   }
+
   .nav-link {
-    width: 48px;
-    min-width: 48px;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    padding: 0 10px;
+    place-items: center stretch;
+  }
+
+  .side-rail .brand-mark div:last-child,
+  .side-rail .nav-group-label,
+  .side-rail .nav-link span {
+    display: block;
+  }
+
+  .side-rail .nav-caret {
+    display: none;
   }
 
   .workbench {
-    padding: 16px 12px 96px;
+    padding: calc(14px + env(safe-area-inset-top)) 12px calc(26px + env(safe-area-inset-bottom));
   }
 
-  .topbar,
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    margin: -14px -12px 12px;
+    padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(14px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+  }
+
   .dashboard-band,
   .section-heading,
   .toolbar-row,
@@ -2507,6 +2834,10 @@ code {
   .toolbar-actions,
   .month-control {
     width: 100%;
+  }
+
+  .topbar-actions {
+    grid-column: 1 / -1;
   }
 
   .metric-grid,
@@ -2528,12 +2859,107 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .field,
+  .field *,
+  .form-grid,
+  .form-grid--receipt,
+  .receipt-search-grid {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .month-button-grid {
     grid-template-columns: repeat(4, minmax(54px, 1fr));
   }
 
   .receipt-month-bar {
     grid-template-columns: 1fr;
+  }
+
+  .field input[type="date"],
+  .field input[type="time"],
+  .field input[type="month"],
+  .receipt-search-grid input[type="date"],
+  .receipt-search-grid input[type="time"],
+  .receipt-search-grid input[type="month"] {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    inline-size: 100%;
+    box-sizing: border-box;
+    padding-right: 10px;
+    font-size: 16px;
+    line-height: 42px;
+  }
+
+  .field input[type="date"]::-webkit-date-and-time-value,
+  .field input[type="time"]::-webkit-date-and-time-value,
+  .field input[type="month"]::-webkit-date-and-time-value,
+  .receipt-search-grid input[type="date"]::-webkit-date-and-time-value,
+  .receipt-search-grid input[type="time"]::-webkit-date-and-time-value,
+  .receipt-search-grid input[type="month"]::-webkit-date-and-time-value {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .field input[type="date"]::-webkit-calendar-picker-indicator,
+  .field input[type="time"]::-webkit-calendar-picker-indicator,
+  .field input[type="month"]::-webkit-calendar-picker-indicator,
+  .receipt-search-grid input[type="date"]::-webkit-calendar-picker-indicator,
+  .receipt-search-grid input[type="time"]::-webkit-calendar-picker-indicator,
+  .receipt-search-grid input[type="month"]::-webkit-calendar-picker-indicator {
+    margin: 0;
+    padding: 0;
+  }
+
+  .line-table {
+    overflow: visible;
+  }
+
+  .line-row {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    background: color-mix(in srgb, var(--panel) 94%, var(--surface));
+  }
+
+  .line-field {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+  }
+
+  .line-field::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .line-field > input,
+  .line-field > select,
+  .line-field > output {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .line-field--action {
+    grid-template-columns: 1fr;
+  }
+
+  .line-field--action::before {
+    content: "";
+    display: none;
   }
 
   .dashboard-month-main {

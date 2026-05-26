@@ -38,12 +38,6 @@ export function AiLibraryPage({ notify }: AiLibraryPageProps) {
       .catch(error => notify((error as Error).message, "error"));
   }, [selectedId]);
 
-  const imageSrc = detail?.imageBase64
-    ? detail.imageBase64.startsWith("data:")
-      ? detail.imageBase64
-      : `data:${detail.imageMimeType || "image/jpeg"};base64,${detail.imageBase64}`
-    : "";
-
   return (
     <div className="ai-library-layout">
       <section className="panel ai-library-list">
@@ -57,7 +51,8 @@ export function AiLibraryPage({ notify }: AiLibraryPageProps) {
           </button>
         </div>
         <div className="history-list">
-          {rows.length === 0 && <div className="empty-state">履歴がありません</div>}
+          {loading && rows.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
+          {!loading && rows.length === 0 && <div className="empty-state">履歴がありません</div>}
           {rows.map(row => (
             <button
               key={row.analysisId}
@@ -73,10 +68,7 @@ export function AiLibraryPage({ notify }: AiLibraryPageProps) {
         </div>
       </section>
 
-      <section className="panel ai-library-detail">
-        <div className="library-image-pane">
-          {imageSrc ? <img src={imageSrc} alt="" /> : <span>IMAGE</span>}
-        </div>
+      <section className="panel ai-library-detail ai-library-detail--no-image">
         <div className="library-text-pane">
           <div>
             <span className="section-kicker">AI</span>

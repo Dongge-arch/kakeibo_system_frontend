@@ -145,7 +145,8 @@ export type DashboardWidgetId =
   | "receiptCount"
   | "incomeCount"
   | "topCategory"
-  | "budgetUsage";
+  | "budgetUsage"
+  | "calendar";
 
 // ダッシュボードウィジェットの表示幅。
 export type DashboardWidgetSize = "small" | "medium" | "wide" | "large";

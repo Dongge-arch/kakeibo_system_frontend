@@ -1,4 +1,4 @@
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { Category1, Category2, SalaryCategory } from "../api/types";
@@ -11,6 +11,82 @@ type CategoriesPageProps = {
   refresh: () => Promise<void> | void;
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
+
+const defaultCategory1 = ["食費", "日用品", "交通", "住居", "水道光熱", "通信", "医療", "美容", "衣服", "娯楽", "交際", "教育", "ペット", "税金・保険", "その他"];
+
+const defaultCategory2 = [
+  { category1_name: "食費", category2_name: "米・パン・麺", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "肉・魚", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "野菜・果物", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "卵・乳製品", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "惣菜・冷凍食品", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "菓子・デザート", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "調味料", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "飲料", tax_rate: 0.08 },
+  { category1_name: "食費", category2_name: "外食", tax_rate: 0.1 },
+  { category1_name: "食費", category2_name: "カフェ", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "洗剤・掃除用品", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "紙用品", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "キッチン用品", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "バス・トイレ用品", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "衛生用品", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "文具・事務用品", tax_rate: 0.1 },
+  { category1_name: "日用品", category2_name: "小型雑貨", tax_rate: 0.1 },
+  { category1_name: "交通", category2_name: "電車・バス", tax_rate: 0.1 },
+  { category1_name: "交通", category2_name: "タクシー", tax_rate: 0.1 },
+  { category1_name: "交通", category2_name: "ガソリン", tax_rate: 0.1 },
+  { category1_name: "交通", category2_name: "駐車場", tax_rate: 0.1 },
+  { category1_name: "交通", category2_name: "高速料金", tax_rate: 0.1 },
+  { category1_name: "交通", category2_name: "自転車", tax_rate: 0.1 },
+  { category1_name: "住居", category2_name: "家賃", tax_rate: 0.1 },
+  { category1_name: "住居", category2_name: "管理費", tax_rate: 0.1 },
+  { category1_name: "住居", category2_name: "家具", tax_rate: 0.1 },
+  { category1_name: "住居", category2_name: "家電", tax_rate: 0.1 },
+  { category1_name: "住居", category2_name: "修繕・工具", tax_rate: 0.1 },
+  { category1_name: "水道光熱", category2_name: "電気", tax_rate: 0.1 },
+  { category1_name: "水道光熱", category2_name: "ガス", tax_rate: 0.1 },
+  { category1_name: "水道光熱", category2_name: "水道", tax_rate: 0.1 },
+  { category1_name: "通信", category2_name: "携帯電話", tax_rate: 0.1 },
+  { category1_name: "通信", category2_name: "インターネット", tax_rate: 0.1 },
+  { category1_name: "通信", category2_name: "サブスク", tax_rate: 0.1 },
+  { category1_name: "通信", category2_name: "郵便・配送", tax_rate: 0.1 },
+  { category1_name: "医療", category2_name: "病院", tax_rate: 0.1 },
+  { category1_name: "医療", category2_name: "薬・処方箋", tax_rate: 0.1 },
+  { category1_name: "医療", category2_name: "歯科", tax_rate: 0.1 },
+  { category1_name: "医療", category2_name: "検査・予防", tax_rate: 0.1 },
+  { category1_name: "美容", category2_name: "美容院", tax_rate: 0.1 },
+  { category1_name: "美容", category2_name: "化粧品", tax_rate: 0.1 },
+  { category1_name: "美容", category2_name: "スキンケア", tax_rate: 0.1 },
+  { category1_name: "美容", category2_name: "理容・ネイル", tax_rate: 0.1 },
+  { category1_name: "衣服", category2_name: "服", tax_rate: 0.1 },
+  { category1_name: "衣服", category2_name: "靴", tax_rate: 0.1 },
+  { category1_name: "衣服", category2_name: "バッグ・小物", tax_rate: 0.1 },
+  { category1_name: "衣服", category2_name: "クリーニング", tax_rate: 0.1 },
+  { category1_name: "娯楽", category2_name: "映画・配信", tax_rate: 0.1 },
+  { category1_name: "娯楽", category2_name: "書籍", tax_rate: 0.1 },
+  { category1_name: "娯楽", category2_name: "ゲーム", tax_rate: 0.1 },
+  { category1_name: "娯楽", category2_name: "旅行・宿泊", tax_rate: 0.1 },
+  { category1_name: "娯楽", category2_name: "イベント", tax_rate: 0.1 },
+  { category1_name: "娯楽", category2_name: "スポーツ", tax_rate: 0.1 },
+  { category1_name: "交際", category2_name: "贈答", tax_rate: 0.1 },
+  { category1_name: "交際", category2_name: "会食", tax_rate: 0.1 },
+  { category1_name: "交際", category2_name: "冠婚葬祭", tax_rate: 0.1 },
+  { category1_name: "交際", category2_name: "家族・友人", tax_rate: 0.1 },
+  { category1_name: "教育", category2_name: "学習", tax_rate: 0.1 },
+  { category1_name: "教育", category2_name: "教材・書籍", tax_rate: 0.1 },
+  { category1_name: "教育", category2_name: "資格・試験", tax_rate: 0.1 },
+  { category1_name: "ペット", category2_name: "フード", tax_rate: 0.1 },
+  { category1_name: "ペット", category2_name: "用品", tax_rate: 0.1 },
+  { category1_name: "ペット", category2_name: "病院・ケア", tax_rate: 0.1 },
+  { category1_name: "税金・保険", category2_name: "保険料", tax_rate: 0.1 },
+  { category1_name: "税金・保険", category2_name: "税金", tax_rate: 0.1 },
+  { category1_name: "税金・保険", category2_name: "年金", tax_rate: 0.1 },
+  { category1_name: "その他", category2_name: "手数料", tax_rate: 0.1 },
+  { category1_name: "その他", category2_name: "現金調整", tax_rate: 0.1 },
+  { category1_name: "その他", category2_name: "未分類", tax_rate: 0.1 }
+];
+
+const defaultSalaryCategories = ["給与", "賞与", "副業", "投資", "返金", "その他"];
 
 export function CategoriesPage({ category1, category2, salaryCategories, refresh, notify }: CategoriesPageProps) {
   const [newCategory1, setNewCategory1] = useState("");
@@ -93,8 +169,32 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
     );
   }
 
+  function addDefaultCategories() {
+    run(
+      () => api.master.addDefaultCategories({
+        category1: defaultCategory1,
+        category2: defaultCategory2,
+        salaryCategories: defaultSalaryCategories
+      }),
+      "デフォルト分類を追加しました。"
+    );
+  }
+
   return (
     <div className="category-layout">
+      <section className="panel category-default-panel">
+        <div className="section-heading">
+          <div>
+            <span className="section-kicker">Default</span>
+            <h2>標準分類</h2>
+          </div>
+          <button type="button" className="command-button command-button--primary" onClick={addDefaultCategories} disabled={busy}>
+            <Sparkles size={17} /> デフォルト分類を追加
+          </button>
+        </div>
+        <p className="panel-note">日常の家計簿で使いやすい出費分類、小分類、入金分類をまとめて追加します。既にある分類は重複登録しません。</p>
+      </section>
+
       <section className="panel">
         <div className="section-heading">
           <div>

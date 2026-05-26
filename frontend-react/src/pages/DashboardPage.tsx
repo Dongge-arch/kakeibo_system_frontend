@@ -45,6 +45,46 @@ type DashboardPageProps = {
 const newWidgetIds: DashboardWidgetId[] = ["receiptCount", "incomeCount", "topCategory", "budgetUsage"];
 
 const defaultLayout: DashboardLayoutItem[] = [
+  { id: "clock", size: "small" },
+  { id: "expense", size: "small" },
+  { id: "income", size: "small" },
+  { id: "balance", size: "small" },
+  { id: "receiptCount", size: "small" },
+  { id: "incomeCount", size: "small" },
+  { id: "topCategory", size: "small" },
+  { id: "recentExpense", size: "small" }
+];
+
+const compactDefaultOrder: DashboardWidgetId[] = [
+  "clock",
+  "expense",
+  "income",
+  "balance",
+  "topCategory",
+  "categoryChart",
+  "dailyChart",
+  "recentExpense"
+];
+
+const legacyDefaultOrder: DashboardWidgetId[] = [
+  "expense",
+  "income",
+  "balance",
+  "budget",
+  "receiptCount",
+  "incomeCount",
+  "budgetUsage",
+  "topCategory",
+  "categoryChart",
+  "dailyChart",
+  "recentExpense",
+  "recentIncome",
+  "aiUsage",
+  "clock"
+];
+
+const availableLayout: DashboardLayoutItem[] = [
+  { id: "clock", size: "small" },
   { id: "expense", size: "small" },
   { id: "income", size: "small" },
   { id: "balance", size: "small" },
@@ -58,10 +98,10 @@ const defaultLayout: DashboardLayoutItem[] = [
   { id: "recentExpense", size: "medium" },
   { id: "recentIncome", size: "medium" },
   { id: "aiUsage", size: "medium" },
-  { id: "clock", size: "small" }
+  { id: "calendar", size: "large" }
 ];
 
-const widgetMeta: Record<DashboardWidgetId, { title: string; description: string; defaultSize: DashboardWidgetSize }> = {
+const widgetMeta = {
   clock: { title: "時計", description: "現在の日時", defaultSize: "small" },
   expense: { title: "今月の支出", description: "レシート合計", defaultSize: "small" },
   income: { title: "今月の収入", description: "入金合計", defaultSize: "small" },
@@ -75,8 +115,9 @@ const widgetMeta: Record<DashboardWidgetId, { title: string; description: string
   dailyChart: { title: "日別推移", description: "日別の収支", defaultSize: "wide" },
   recentExpense: { title: "最近の支出", description: "直近のレシート", defaultSize: "medium" },
   recentIncome: { title: "最近の収入", description: "直近の入金", defaultSize: "medium" },
-  aiUsage: { title: "AI利用状況", description: "実行回数とトークン", defaultSize: "medium" }
-};
+  aiUsage: { title: "AI利用状況", description: "実行回数とトークン", defaultSize: "medium" },
+  calendar: { title: "カレンダー", description: "日ごとの収支", defaultSize: "large" }
+} as Record<DashboardWidgetId, { title: string; description: string; defaultSize: DashboardWidgetSize }>;
 
 export function DashboardPage({
   month,
@@ -128,7 +169,7 @@ export function DashboardPage({
   const selectedMonth = Number(month.slice(5, 7)) || new Date().getMonth() + 1;
   const visibleLayout = useMemo(() => layout.filter(item => budgetEnabled || (item.id !== "budget" && item.id !== "budgetUsage")), [layout, budgetEnabled]);
   const visibleIds = new Set(visibleLayout.map(item => item.id));
-  const hiddenWidgets = defaultLayout.filter(item => {
+  const hiddenWidgets = availableLayout.filter(item => {
     if ((item.id === "budget" || item.id === "budgetUsage") && !budgetEnabled) return false;
     return !visibleIds.has(item.id);
   });
@@ -266,6 +307,7 @@ export function DashboardPage({
         </div>
       );
     }
+    if (id === "calendar") return <CalendarWidget month={month} receipts={receipts} incomes={incomes} />;
     if (id === "recentExpense") {
       return <MiniList rows={recentReceipts.map(row => ({ id: row.receiptId, title: row.supplierName || "未入力", sub: `${row.receiptDate} ${row.receiptTime}`, amount: row.totalPrice }))} />;
     }
@@ -355,7 +397,7 @@ export function DashboardPage({
         {visibleLayout.map(item => (
           <article
             key={item.id}
-            className={`dashboard-widget dashboard-widget--${item.size}`}
+            className={`dashboard-widget dashboard-widget--${item.size} ${item.id === "clock" ? "dashboard-widget--clock" : ""}`}
             draggable
             onDragStart={() => setDraggingId(item.id)}
             onDragEnd={() => setDraggingId(null)}
@@ -395,14 +437,19 @@ function MetricCard({ label, value, tone, icon }: { label: string; value: string
 
 function normalizeLayout(saved: DashboardLayoutItem[]) {
   const valid = saved.filter(item => widgetMeta[item.id]);
+  if (isDefaultLikeLayout(valid, legacyDefaultOrder) || isDefaultLikeLayout(valid, compactDefaultOrder)) return defaultLayout;
   const byId = new Map(valid.map(item => [item.id, item]));
-  const ordered = defaultLayout
+  const ordered = availableLayout
     .filter(item => byId.has(item.id))
     .map(item => ({ ...item, size: byId.get(item.id)?.size || item.size }));
-  const appendedNew = defaultLayout.filter(item => newWidgetIds.includes(item.id) && !byId.has(item.id));
-  const knownIds = new Set(defaultLayout.map(item => item.id));
+  const appendedNew = availableLayout.filter(item => newWidgetIds.includes(item.id) && !byId.has(item.id));
+  const knownIds = new Set(availableLayout.map(item => item.id));
   const extra = valid.filter(item => !knownIds.has(item.id));
   return [...ordered, ...appendedNew, ...extra];
+}
+
+function isDefaultLikeLayout(saved: DashboardLayoutItem[], order: DashboardWidgetId[]) {
+  return saved.length === order.length && saved.every((item, index) => item.id === order[index]);
 }
 
 type BudgetSummary = {
@@ -462,6 +509,27 @@ function MiniList({ rows }: { rows: Array<{ id: string; title: string; sub: stri
   );
 }
 
+function CalendarWidget({ month, receipts, incomes }: { month: string; receipts: ReceiptSummary[]; incomes: Income[] }) {
+  const cells = useMemo(() => buildCalendarCells(month, receipts, incomes), [month, receipts, incomes]);
+
+  return (
+    <div className="calendar-widget">
+      <div className="calendar-weekdays">
+        {["月", "火", "水", "木", "金", "土", "日"].map(day => <span key={day}>{day}</span>)}
+      </div>
+      <div className="calendar-grid">
+        {cells.map(cell => (
+          <div className={`calendar-cell ${cell.inMonth ? "" : "is-muted"}`} key={cell.date}>
+            <strong>{cell.day}</strong>
+            <span className="calendar-income">{cell.income > 0 ? `+${yen(cell.income)}` : ""}</span>
+            <span className="calendar-expense">{cell.expense > 0 ? `-${yen(cell.expense)}` : ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function buildDayFlow(receipts: ReceiptSummary[], incomes: Income[]) {
   const map = new Map<string, { expense: number; income: number }>();
   receipts.forEach(receipt => {
@@ -478,6 +546,52 @@ function buildDayFlow(receipts: ReceiptSummary[], incomes: Income[]) {
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-14)
     .map(([date, row]) => ({ date, label: date.slice(5), ...row }));
+}
+
+function buildCalendarCells(month: string, receipts: ReceiptSummary[], incomes: Income[]) {
+  const year = Number(month.slice(0, 4)) || new Date().getFullYear();
+  const monthIndex = (Number(month.slice(5, 7)) || new Date().getMonth() + 1) - 1;
+  const firstDay = new Date(year, monthIndex, 1);
+  const start = new Date(firstDay);
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  start.setDate(firstDay.getDate() - mondayOffset);
+
+  const expenseByDate = new Map<string, number>();
+  const incomeByDate = new Map<string, number>();
+  receipts.forEach(receipt => {
+    const date = normalizeDateKey(receipt.receiptDate);
+    if (!date) return;
+    expenseByDate.set(date, (expenseByDate.get(date) || 0) + Number(receipt.totalPrice || 0));
+  });
+  incomes.forEach(income => {
+    const date = normalizeDateKey(income.salaryDate);
+    if (!date) return;
+    incomeByDate.set(date, (incomeByDate.get(date) || 0) + Number(income.salaryAmount || 0));
+  });
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const key = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+    return {
+      date: key,
+      day: date.getDate(),
+      inMonth: date.getMonth() === monthIndex,
+      expense: expenseByDate.get(key) || 0,
+      income: incomeByDate.get(key) || 0
+    };
+  });
+}
+
+function normalizeDateKey(value: string | null | undefined) {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{8}$/.test(value)) return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+  return "";
 }
 
 function buildTopCategories(receipts: ReceiptSummary[]): Array<[string, number]> {
@@ -502,13 +616,20 @@ function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], perio
   receipts.forEach(receipt => {
     if (range && !isDateInRange(receipt.receiptDate, range.start, range.end)) return;
     receipt.receiptDetails.forEach(item => {
-      const key = budgetKey(item.category1, item.category2);
-      spentByKey.set(key, (spentByKey.get(key) || 0) + Number(item.totalPrice || 0));
+      const amount = Number(item.totalPrice || 0);
+      const categoryKey = budgetKey(item.category1, "");
+      const detailKey = budgetKey(item.category1, item.category2);
+      spentByKey.set(categoryKey, (spentByKey.get(categoryKey) || 0) + amount);
+      spentByKey.set(detailKey, (spentByKey.get(detailKey) || 0) + amount);
     });
   });
 
-  const rows = budgets
-    .filter(item => Number(item.budgetAmount || 0) > 0)
+  const positiveBudgets = budgets.filter(item => Number(item.budgetAmount || 0) > 0);
+  const categoriesWithOverall = new Set(
+    positiveBudgets.filter(item => !item.category2).map(item => item.category1)
+  );
+  const rows = positiveBudgets
+    .filter(item => !item.category2 || !categoriesWithOverall.has(item.category1))
     .map(item => {
       const key = budgetKey(item.category1, item.category2 || "");
       return {

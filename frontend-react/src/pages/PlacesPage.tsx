@@ -78,7 +78,8 @@ export function PlacesPage({ notify }: PlacesPageProps) {
       </div>
 
       <div className="place-grid">
-        {rows.length === 0 && <div className="empty-state">データなし</div>}
+        {loading && rows.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
+        {!loading && rows.length === 0 && <div className="empty-state">データなし</div>}
         {rows.map(row => {
           const logoSrc = buildImageSrc(row.supplierImage);
           const isTaxIncluded = String(row.taxFlag) === "1";

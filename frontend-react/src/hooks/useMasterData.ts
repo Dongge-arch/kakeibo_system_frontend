@@ -7,6 +7,7 @@ export function useMasterData(scopeKey = "") {
   const [category2, setCategory2] = useState<Category2[]>([]);
   const [salaryCategories, setSalaryCategories] = useState<SalaryCategory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!scopeKey) {
@@ -17,6 +18,7 @@ export function useMasterData(scopeKey = "") {
     }
 
     setLoading(true);
+    setError(null);
     try {
       const [cat1, cat2, salaries] = await Promise.all([
         api.master.category1(),
@@ -26,6 +28,9 @@ export function useMasterData(scopeKey = "") {
       setCategory1(uniqueBy(cat1 || [], row => row.CATEGORY1_NAME));
       setCategory2(uniqueBy(cat2 || [], row => `${row.CATEGORY1_NAME}_${row.CATEGORY2_NAME}`));
       setSalaryCategories(uniqueBy(salaries || [], row => row.SAL_CAT));
+    } catch (error) {
+      setError((error as Error).message);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -35,7 +40,7 @@ export function useMasterData(scopeKey = "") {
     refresh().catch(console.error);
   }, [refresh]);
 
-  return { category1, category2, salaryCategories, loading, refresh };
+  return { category1, category2, salaryCategories, loading, error, refresh };
 }
 
 function uniqueBy<T>(rows: T[], getKey: (row: T) => string): T[] {

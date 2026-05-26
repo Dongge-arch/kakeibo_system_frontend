@@ -58,6 +58,23 @@ export default function App() {
     window.setTimeout(() => setToast(current => current?.message === message ? null : current), 3200);
   }, []);
 
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+    const applyDevice = () => {
+      document.documentElement.dataset.device = query.matches ? "mobile" : "desktop";
+      document.documentElement.dataset.orientation = window.innerWidth > window.innerHeight ? "landscape" : "portrait";
+    };
+    applyDevice();
+    query.addEventListener("change", applyDevice);
+    window.addEventListener("resize", applyDevice);
+    window.addEventListener("orientationchange", applyDevice);
+    return () => {
+      query.removeEventListener("change", applyDevice);
+      window.removeEventListener("resize", applyDevice);
+      window.removeEventListener("orientationchange", applyDevice);
+    };
+  }, []);
+
   const applySettings = useCallback((next: AppSettings) => {
     document.documentElement.dataset.theme = resolveDarkMode(next) ? "dark" : "light";
     document.documentElement.dataset.largeText = next.largeTextMode ? "true" : "false";
@@ -102,6 +119,10 @@ export default function App() {
   useEffect(() => {
     refreshDashboard().catch(console.error);
   }, [refreshDashboard]);
+
+  useEffect(() => {
+    if (master.error) notify(master.error, "error");
+  }, [master.error, notify]);
 
   useEffect(() => {
     if (page === "budget" && !settings.budgetEnabled) {
@@ -229,6 +250,11 @@ export default function App() {
         onNavigate={setPage}
         onLogout={auth.logout}
       >
+        {(loading || master.loading) && auth.session && (
+          <div className="loading-strip" role="status" aria-live="polite">
+            データを読み込んでいます...
+          </div>
+        )}
         {renderPage()}
       </Layout>
       {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}

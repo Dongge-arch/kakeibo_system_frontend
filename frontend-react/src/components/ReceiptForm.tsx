@@ -273,22 +273,38 @@ export function ReceiptForm({
           </div>
           {form.receiptDetails.map((item, index) => (
             <div className="line-row" key={index}>
-              <input value={item.itemName} onChange={event => updateItem(index, { itemName: event.target.value })} />
-              <select value={item.category1} onChange={event => updateItem(index, { category1: event.target.value, category2: "" })}>
+              <label className="line-field" data-label="商品">
+                <input value={item.itemName} onChange={event => updateItem(index, { itemName: event.target.value })} />
+              </label>
+              <label className="line-field" data-label="分類">
+                <select value={item.category1} onChange={event => updateItem(index, { category1: event.target.value, category2: "" })}>
                 <option value=""></option>
                 {category1.map(row => <option key={row.CATEGORY1_NAME} value={row.CATEGORY1_NAME}>{row.CATEGORY1_NAME}</option>)}
-              </select>
-              <select value={item.category2} onChange={event => updateItem(index, { category2: event.target.value })}>
+                </select>
+              </label>
+              <label className="line-field" data-label="小分類">
+                <select value={item.category2} onChange={event => updateItem(index, { category2: event.target.value })}>
                 <option value=""></option>
                 {category2
                   .filter(row => !item.category1 || row.CATEGORY1_NAME === item.category1)
                   .map(row => <option key={`${row.CATEGORY1_NAME}-${row.CATEGORY2_NAME}`} value={row.CATEGORY2_NAME}>{row.CATEGORY2_NAME}</option>)}
-              </select>
-              <input type="number" value={item.quantity} onChange={event => updateItem(index, { quantity: parseNumber(event.target.value) })} />
-              <input type="number" value={item.unitPrice} onChange={event => updateItem(index, { unitPrice: parseNumber(event.target.value) })} />
-              <input type="number" value={item.discount || 0} onChange={event => updateItem(index, { discount: parseNumber(event.target.value) })} />
-              <output>{yen(item.totalPrice)}</output>
-              <IconButton label="削除" icon={Trash2} variant="danger" onClick={() => removeRow(index)} />
+                </select>
+              </label>
+              <label className="line-field" data-label="数量">
+                <input type="number" value={numberFieldValue(item.quantity, false)} onChange={event => updateItem(index, { quantity: numberFieldParse(event.target.value) || 0 })} />
+              </label>
+              <label className="line-field" data-label="単価">
+                <input type="number" value={numberFieldValue(item.unitPrice)} onChange={event => updateItem(index, { unitPrice: numberFieldParse(event.target.value) })} />
+              </label>
+              <label className="line-field" data-label="割引">
+                <input type="number" value={numberFieldValue(item.discount)} onChange={event => updateItem(index, { discount: numberFieldParse(event.target.value) })} />
+              </label>
+              <label className="line-field line-field--output" data-label="金額">
+                <output>{yen(item.totalPrice)}</output>
+              </label>
+              <div className="line-field line-field--action">
+                <IconButton label="削除" icon={Trash2} variant="danger" onClick={() => removeRow(index)} />
+              </div>
             </div>
           ))}
         </div>
@@ -330,4 +346,15 @@ function normalizeReceiptItem(item: ReceiptItem): ReceiptItem {
     discount: parseNumber(item.discount),
     totalPrice: parseNumber(item.totalPrice)
   };
+}
+
+function numberFieldValue(value: number | string | null | undefined, hideZero = true) {
+  const parsed = parseNumber(value);
+  if (hideZero && parsed === 0) return "";
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+function numberFieldParse(value: string) {
+  return value.trim() === "" ? 0 : parseNumber(value);
 }

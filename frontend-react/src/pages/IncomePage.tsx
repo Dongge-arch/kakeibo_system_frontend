@@ -131,7 +131,8 @@ export function IncomePage({ salaryCategories, onChanged, notify }: IncomePagePr
         </div>
 
         <div className="editable-list">
-          {rows.length === 0 && <div className="empty-state">データなし</div>}
+          {loading && rows.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
+          {!loading && rows.length === 0 && <div className="empty-state">データなし</div>}
           {rows.map((row, index) => (
             <div className="editable-row" key={row.id || index}>
               <input type="date" value={row.salaryDate} onChange={event => {

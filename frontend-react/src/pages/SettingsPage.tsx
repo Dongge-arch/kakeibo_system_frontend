@@ -168,19 +168,6 @@ export function SettingsPage({
     }
   }
 
-  async function saveSettings() {
-    if (autosaveTimer.current) {
-      window.clearTimeout(autosaveTimer.current);
-      autosaveTimer.current = null;
-    }
-    try {
-      await api.settings.save(draft);
-      notify("設定を保存しました。", "success");
-    } catch (error) {
-      notify((error as Error).message, "error");
-    }
-  }
-
   const settingsPanel = (
     <section className="panel">
       <div className="section-heading">
@@ -188,9 +175,7 @@ export function SettingsPage({
           <span className="section-kicker">App</span>
           <h2>表示設定</h2>
         </div>
-        <button type="button" className="command-button command-button--primary" onClick={saveSettings}>
-          <Save size={17} /> 保存
-        </button>
+        <span className="autosave-badge">自動保存</span>
       </div>
 
       <div className="settings-grid">

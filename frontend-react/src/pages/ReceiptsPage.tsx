@@ -419,7 +419,8 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
           <em>明細 {exportRows.length} 件</em>
         </div>
         <div className="receipt-list-grid">
-          {receipts.length === 0 && <div className="empty-state">データなし</div>}
+          {loading && receipts.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
+          {!loading && receipts.length === 0 && <div className="empty-state">データなし</div>}
           {receipts.map(receipt => {
             const logoSrc = buildImageSrc(receipt.supplierImage);
             const isOpen = !!expanded[receipt.receiptId];
