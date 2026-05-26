@@ -12,6 +12,7 @@
   Invoice,
   ReceiptFlatRow,
   ReceiptForm,
+  RecurringExpense,
   ReceiptSearchCondition,
   SalaryCategory
 } from "./types";
@@ -207,6 +208,10 @@ function get<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
+function remove<T>(path: string): Promise<T> {
+  return request<T>(path, { method: "DELETE" });
+}
+
 function readSessionCookie(): AuthSession | null {
   if (typeof document === "undefined") return null;
   const prefix = `${SESSION_COOKIE_KEY}=`;
@@ -354,6 +359,13 @@ export const api = {
       { updateDeleteType: "update", receiptInfo: { ...receiptInfo, receiptDetailCount: receiptInfo.receiptDetails.length } }
     ),
     remove: (receiptId: string) => put<{ message: string }>("/receipt/ReceiptUpdateDelete", { updateDeleteType: "delete", receiptId })
+  },
+  recurring: {
+    list: () => get<RecurringExpense[]>("/recurring-expenses"),
+    create: (rule: RecurringExpense) => post<{ ok: boolean; message?: string }>("/recurring-expenses", rule),
+    update: (rule: RecurringExpense) => put<{ ok: boolean; message?: string }>(`/recurring-expenses/${rule.id}`, rule),
+    remove: (id: number) => remove<{ ok: boolean; message?: string }>(`/recurring-expenses/${id}`),
+    runDue: () => post<{ ok: boolean; createdCount: number; created?: Array<{ id: number; receiptId: string }> }>("/recurring-expenses/run-due", {})
   },
   income: {
     list: (month: string) => get<Income[]>(`/receipt/getincome?month=${encodeURIComponent(month)}`),

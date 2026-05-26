@@ -8,6 +8,8 @@
   --line: #d9dfd8;
   --teal: #167c72;
   --teal-2: #d9ebe6;
+  --accent: #556b2f;
+  --accent-2: #e9efd8;
   --coral: #c75643;
   --coral-2: #f4ddd6;
   --gold: #b07a18;
@@ -29,6 +31,7 @@
   --muted: #b7ada0;
   --line: #403d35;
   --teal-2: #203e39;
+  --accent-2: #31391f;
   --coral-2: #4a2d28;
   --gold-2: #43351b;
   --green-2: #263d29;
@@ -39,25 +42,57 @@
 :root[data-color="green"] {
   --teal: #377a45;
   --teal-2: #dcebd7;
+  --accent: #7c9f35;
+  --accent-2: #edf5d7;
   --gold: #9a7b17;
 }
 
 :root[data-color="orange"] {
   --teal: #b85f1c;
   --teal-2: #f3e1d2;
+  --accent: #256d85;
+  --accent-2: #d8edf3;
   --gold: #996b12;
 }
 
 :root[data-color="pink"] {
   --teal: #ad4f76;
   --teal-2: #f1dbe5;
+  --accent: #5b7a3e;
+  --accent-2: #e4edd8;
   --gold: #9a7418;
 }
 
 :root[data-color="indigo"] {
   --teal: #4f64a7;
   --teal-2: #e0e5f4;
+  --accent: #b66a35;
+  --accent-2: #f1e1d4;
   --gold: #977019;
+}
+
+:root[data-color="sakura"] {
+  --teal: #b64f6b;
+  --teal-2: #f3dce4;
+  --accent: #4f8a76;
+  --accent-2: #dbefe8;
+  --gold: #a47723;
+}
+
+:root[data-color="sky"] {
+  --teal: #276f9f;
+  --teal-2: #dbeaf4;
+  --accent: #7b8e32;
+  --accent-2: #edf1d6;
+  --gold: #a66d17;
+}
+
+:root[data-color="mono"] {
+  --teal: #3f4a46;
+  --teal-2: #e2e5e3;
+  --accent: #9a7b17;
+  --accent-2: #f4e7c8;
+  --gold: #856314;
 }
 
 :root[data-theme="dark"][data-color="green"] {
@@ -74,6 +109,21 @@
 
 :root[data-theme="dark"][data-color="indigo"] {
   --teal-2: #2b314b;
+}
+
+:root[data-theme="dark"][data-color="sakura"] {
+  --teal-2: #462a34;
+  --accent-2: #213b33;
+}
+
+:root[data-theme="dark"][data-color="sky"] {
+  --teal-2: #20364a;
+  --accent-2: #33391d;
+}
+
+:root[data-theme="dark"][data-color="mono"] {
+  --teal-2: #303632;
+  --accent-2: #43351b;
 }
 
 :root[data-large-text="true"] {
@@ -163,8 +213,16 @@ img {
   display: grid;
   place-items: center;
   color: #fff;
-  background: linear-gradient(135deg, var(--teal), #2f625d 52%, var(--gold));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--teal) 90%, black), var(--teal) 52%, var(--accent)),
+    var(--teal);
   box-shadow: 0 12px 22px rgba(22, 124, 114, 0.25);
+}
+
+.brand-symbol svg {
+  width: 31px;
+  height: 31px;
+  display: block;
 }
 
 .brand-mark strong {
@@ -811,7 +869,16 @@ img {
 }
 
 .ai-page-grid {
-  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.ai-page-grid > .receipt-form {
+  min-width: 0;
+}
+
+.ai-page-grid > .receipt-form .receipt-hero-panel {
+  margin-top: 0;
 }
 
 .ai-library-layout {
@@ -934,6 +1001,12 @@ img {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 input,
@@ -1329,13 +1402,93 @@ pre {
 .budget-grid,
 .place-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
+  align-items: start;
 }
 
 .receipt-search-form {
   display: grid;
   gap: 14px;
+}
+
+.recurring-form {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.recurring-card {
+  display: grid;
+  gap: 12px;
+}
+
+.recurring-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.recurring-toggle {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recurring-toggle span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.recurring-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.recurring-toggle i {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background .18s ease;
+}
+
+.recurring-toggle i::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .22);
+  transition: transform .18s ease;
+}
+
+.recurring-toggle input:checked + i {
+  background: var(--teal);
+}
+
+.recurring-toggle input:checked + i::after {
+  transform: translateX(22px);
+}
+
+.recurring-toggle--wide,
+.recurring-edit-form .search-form-actions {
+  grid-column: 1 / -1;
 }
 
 .receipt-search-grid {
@@ -1353,7 +1506,7 @@ pre {
 
 .receipt-month-bar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: center;
   border: 1px solid var(--line);
@@ -1523,22 +1676,31 @@ pre {
 .receipt-detail-row {
   min-height: 38px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(74px, auto);
-  gap: 8px;
+  grid-template-columns: minmax(120px, 1.4fr) minmax(110px, 0.9fr) minmax(48px, auto) minmax(76px, auto);
+  gap: 10px;
   align-items: center;
   color: var(--text);
 }
 
 .receipt-detail-row strong {
   grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .receipt-detail-row span {
-  grid-column: 1;
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .receipt-detail-row em {
-  grid-column: 1;
+  grid-column: 3;
+  white-space: nowrap;
 }
 
 .receipt-detail-row span,
@@ -1548,10 +1710,11 @@ pre {
 }
 
 .receipt-detail-row b {
-  grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-column: 4;
+  grid-row: auto;
   align-self: center;
   text-align: right;
+  white-space: nowrap;
 }
 
 .receipt-card-top {
@@ -2689,6 +2852,14 @@ code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .recurring-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recurring-edit-form {
+    grid-template-columns: 1fr;
+  }
+
   .inline-form--wide {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2845,6 +3016,8 @@ code {
   .form-grid,
   .form-grid--receipt,
   .receipt-search-grid,
+  .recurring-form,
+  .recurring-edit-form,
   .settings-grid,
   .settings-layout,
   .auth-form-grid,
@@ -2979,9 +3152,12 @@ code {
     text-align: left;
   }
 
+  .receipt-detail-row strong,
+  .receipt-detail-row span,
+  .receipt-detail-row em,
   .receipt-detail-row b {
     grid-column: 1;
-    grid-row: auto;
+    white-space: normal;
   }
 
   .dashboard-widget--small,

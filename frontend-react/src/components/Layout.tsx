@@ -1,6 +1,5 @@
 import {
   Bot,
-  ChartNoAxesCombined,
   ChevronRight,
   CircleDollarSign,
   Cloud,
@@ -22,11 +21,14 @@ import type { ComponentType, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { LucideProps } from "lucide-react";
 import type { AuthSession } from "../api/types";
+import type { Language } from "../i18n";
+import { t } from "../i18n";
 import { IconButton } from "./IconButton";
 
 export type PageKey =
   | "dashboard"
   | "receipt"
+  | "recurring"
   | "ai"
   | "ai-library"
   | "receipts"
@@ -38,41 +40,42 @@ export type PageKey =
 
 export type NavItem = {
   key: PageKey;
-  label: string;
+  label: (language: Language) => string;
   icon: ComponentType<LucideProps>;
 };
 
 const homeItems: NavItem[] = [
-  { key: "dashboard", label: "ホーム", icon: House }
+  { key: "dashboard", label: language => t(language, "dashboard"), icon: House }
 ];
 
 const recordItems: NavItem[] = [
-  { key: "ai", label: "レシートAI", icon: Bot },
-  { key: "receipt", label: "手入力", icon: ReceiptText },
-  { key: "income", label: "入金", icon: CircleDollarSign }
+  { key: "ai", label: language => t(language, "aiExpense"), icon: Bot },
+  { key: "receipt", label: language => t(language, "manualExpense"), icon: ReceiptText },
+  { key: "recurring", label: language => t(language, "recurringExpense"), icon: WalletCards },
+  { key: "income", label: language => t(language, "incomeEntry"), icon: CircleDollarSign }
 ];
 
 const historyItems: NavItem[] = [
-  { key: "receipts", label: "明細履歴", icon: Search },
-  { key: "ai-library", label: "AI履歴", icon: LibraryBig }
+  { key: "receipts", label: language => t(language, "expenseHistory"), icon: Search },
+  { key: "ai-library", label: language => t(language, "aiHistory"), icon: LibraryBig }
 ];
 
 const planItems: NavItem[] = [
-  { key: "budget", label: "予算", icon: WalletCards }
+  { key: "budget", label: language => t(language, "budget"), icon: WalletCards }
 ];
 
 const manageItems: NavItem[] = [
-  { key: "places", label: "店舗", icon: MapPinned },
-  { key: "categories", label: "カテゴリ", icon: Tags },
-  { key: "settings", label: "アカウント設定", icon: Settings }
+  { key: "places", label: language => t(language, "places"), icon: MapPinned },
+  { key: "categories", label: language => t(language, "categories"), icon: Tags },
+  { key: "settings", label: language => t(language, "settings"), icon: Settings }
 ];
 
 export const navGroups = [
-  { label: "ホーム", items: homeItems },
-  { label: "記録", items: recordItems },
-  { label: "履歴", items: historyItems },
-  { label: "計画", items: planItems },
-  { label: "管理", items: manageItems }
+  { label: (language: Language) => t(language, "homeGroup"), items: homeItems },
+  { label: (language: Language) => t(language, "recordGroup"), items: recordItems },
+  { label: (language: Language) => t(language, "historyGroup"), items: historyItems },
+  { label: (language: Language) => t(language, "planGroup"), items: planItems },
+  { label: (language: Language) => t(language, "manageGroup"), items: manageItems }
 ];
 
 export const navItems: NavItem[] = [
@@ -88,12 +91,13 @@ type LayoutProps = {
   title: string;
   session: AuthSession | null;
   budgetEnabled: boolean;
+  language: Language;
   onNavigate: (page: PageKey) => void;
   onLogout: () => void;
   children: ReactNode;
 };
 
-export function Layout({ page, title, session, budgetEnabled, onNavigate, onLogout, children }: LayoutProps) {
+export function Layout({ page, title, session, budgetEnabled, language, onNavigate, onLogout, children }: LayoutProps) {
   const loggedIn = !!session;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -153,9 +157,9 @@ export function Layout({ page, title, session, budgetEnabled, onNavigate, onLogo
       )}
       <aside className="side-rail">
         <div className="brand-mark" aria-label="Home Kakeibo">
-          <div className="brand-symbol"><ChartNoAxesCombined size={24} /></div>
+          <div className="brand-symbol"><KakeiboLogo /></div>
           <div>
-            <strong>家計簿</strong>
+            <strong>Kakei</strong>
             <span>Home Kakeibo</span>
           </div>
         </div>
@@ -168,22 +172,22 @@ export function Layout({ page, title, session, budgetEnabled, onNavigate, onLogo
             const items = group.items.filter(item => budgetEnabled || item.key !== "budget");
             if (!items.length) return null;
             return (
-              <div className="nav-group" key={group.label}>
-                <span className="nav-group-label">{group.label}</span>
+              <div className="nav-group" key={group.label(language)}>
+                <span className="nav-group-label">{group.label(language)}</span>
                 {items.map(item => {
                   const Icon = item.icon;
                   const active = page === item.key;
                   const locked = !loggedIn && item.key !== "settings";
                   const label = item.key === "settings"
-                    ? loggedIn ? "アカウント設定" : "ログイン"
-                    : item.label;
+                    ? loggedIn ? t(language, "settings") : t(language, "login")
+                    : item.label(language);
                   return (
                     <button
                       key={item.key}
                       type="button"
                       className={`nav-link ${active ? "is-active" : ""}`}
                       disabled={locked}
-                      title={locked ? "ログイン後に利用できます" : label}
+                      title={locked ? t(language, "locked") : label}
                       onClick={() => navigate(item.key)}
                     >
                       <Icon size={19} />
@@ -204,20 +208,31 @@ export function Layout({ page, title, session, budgetEnabled, onNavigate, onLogo
             <Menu size={20} />
           </button>
           <div>
-            <p className="eyebrow"><Cloud size={15} /> クラウド家計簿</p>
+            <p className="eyebrow"><Cloud size={15} /> {t(language, "cloudKakeibo")}</p>
             <h1>{title}</h1>
           </div>
           <div className="topbar-actions">
             <button type="button" className="user-chip" onClick={() => navigate("settings")}>
               <GalleryVerticalEnd size={17} />
-              <span>{session?.nickname || "ゲスト"}</span>
+              <span>{session?.nickname || t(language, "guest")}</span>
             </button>
-            {session && <IconButton label="ログアウト" icon={LogOut} onClick={onLogout} />}
-            <IconButton label="設定" icon={SlidersHorizontal} onClick={() => navigate("settings")} />
+            {session && <IconButton label={t(language, "logout")} icon={LogOut} onClick={onLogout} />}
+            <IconButton label={t(language, "settings")} icon={SlidersHorizontal} onClick={() => navigate("settings")} />
           </div>
         </header>
         {children}
       </main>
     </div>
+  );
+}
+
+function KakeiboLogo() {
+  return (
+    <svg viewBox="0 0 48 48" role="img" aria-hidden="true">
+      <path d="M8 18 24 7l16 11v20a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3V18Z" fill="currentColor" opacity=".22" />
+      <path d="M14 21h20v15H14z" fill="currentColor" opacity=".92" />
+      <path d="M17 25h14M17 30h10" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M31 13c2.4 2.5 2.4 5.1 0 7.7-2.4-2.6-2.4-5.2 0-7.7Z" fill="#f6c453" />
+    </svg>
   );
 }

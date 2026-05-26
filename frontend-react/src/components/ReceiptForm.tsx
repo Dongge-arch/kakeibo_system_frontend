@@ -80,15 +80,7 @@ export function ReceiptForm({
   }
 
   function updateTaxFlag(taxFlag: TaxFlag) {
-    setForm(current => {
-      const receiptDetails = recalcItems(current.receiptDetails, taxFlag, category2);
-      return {
-        ...current,
-        taxFlag,
-        receiptDetails,
-        totalPrice: receiptDetails.reduce((sum, item) => sum + item.totalPrice, 0)
-      };
-    });
+    setForm(current => ({ ...current, taxFlag }));
   }
 
   function updateItem(index: number, patchItem: Partial<ReceiptItem>) {
@@ -162,15 +154,22 @@ export function ReceiptForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     try {
-      const invoiceRegistrationNumber = normalizeInvoice(invoiceInput);
+      const invoiceRegistrationNumber = invoiceInput.trim()
+        ? normalizeInvoice(invoiceInput)
+        : form.invoiceRegistrationNumber?.startsWith("A")
+          ? form.invoiceRegistrationNumber
+          : "";
       const receiptDetails = form.receiptDetails
         .filter(item => item.itemName || item.unitPrice || item.totalPrice)
         .map(item => {
           const normalized = normalizeReceiptItem(item);
-          return { ...normalized, totalPrice: calcItemTotal(normalized, form.taxFlag, category2) };
+          return {
+            ...normalized,
+            totalPrice: parseNumber(normalized.totalPrice) || calcItemTotal(normalized, form.taxFlag, category2)
+          };
         });
 
-      if (!form.supplierName || !form.receiptDate || !form.receiptTime || receiptDetails.length === 0) {
+      if (!form.receiptDate || !form.receiptTime || receiptDetails.length === 0) {
         throw new Error("必須項目を入力してください。");
       }
 
@@ -201,7 +200,7 @@ export function ReceiptForm({
 
         <div className="form-grid form-grid--receipt">
           <label className="field invoice-field">
-            <span>登録番号</span>
+            <span>登録番号（空欄可）</span>
             <div className="prefix-input">
               <b>T</b>
               <input
@@ -213,14 +212,14 @@ export function ReceiptForm({
                   if (invoiceInput.length === 13) lookupSupplier().catch(console.error);
                 }}
               />
-              <button type="button" onClick={lookupSupplier} disabled={lookupBusy}>
+              <button type="button" onClick={lookupSupplier} disabled={lookupBusy || invoiceInput.length !== 13}>
                 <WandSparkles size={16} /> 参照
               </button>
             </div>
           </label>
           <label className="field">
-            <span>店舗名</span>
-            <input value={form.supplierName} onChange={event => patch({ supplierName: event.target.value })} />
+            <span>店舗名（任意）</span>
+            <input value={form.supplierName} placeholder="電気代・家賃などは空欄でも保存できます" onChange={event => patch({ supplierName: event.target.value })} />
           </label>
           <label className="field">
             <span>日付</span>

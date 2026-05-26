@@ -189,14 +189,15 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
     runSearch(next).catch(console.error);
   }
 
-  function shiftYear(delta: number) {
+  function shiftMonth(delta: number) {
     /**
-     * 検索対象年を前後に移動する。
+     * 検索対象月を前後に移動する。
      *
      * Args:
-     *   delta: 移動する年数。
+     *   delta: 移動する月数。
      */
-    applyMonth(buildMonthValue(String(selectedYear + delta), selectedMonth));
+    const date = new Date(selectedYear, selectedMonth - 1 + delta, 1);
+    applyMonth(buildMonthValue(String(date.getFullYear()), date.getMonth() + 1));
   }
 
   function resetSearch() {
@@ -383,25 +384,10 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
             </label>
           </div>
           <div className="receipt-month-bar">
-            <button type="button" onClick={() => shiftYear(-1)}><ChevronLeft size={15} /> 前年</button>
-            <strong>{selectedYear}年</strong>
-            <button type="button" onClick={() => shiftYear(1)}>翌年 <ChevronRight size={15} /></button>
-          </div>
-          <div className="month-button-grid" aria-label="月選択">
-            {Array.from({ length: 12 }, (_, index) => {
-              const monthNumber = index + 1;
-              const monthValue = buildMonthValue(String(selectedYear), monthNumber);
-              return (
-                <button
-                  type="button"
-                  key={monthValue}
-                  className={form.month === monthValue ? "is-active" : ""}
-                  onClick={() => applyMonth(monthValue)}
-                >
-                  {monthNumber}月
-                </button>
-              );
-            })}
+            <button type="button" onClick={() => shiftMonth(-1)}><ChevronLeft size={15} /> 前月</button>
+            <strong>対象月：{selectedYear}年{selectedMonth}月</strong>
+            <button type="button" onClick={() => shiftMonth(1)}>翌月 <ChevronRight size={15} /></button>
+            <button type="button" onClick={() => applyMonth(currentMonth())}>今月</button>
           </div>
           <div className="search-form-actions">
             <button type="button" className="command-button command-button--ghost" onClick={resetSearch}>条件クリア</button>
@@ -424,6 +410,10 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
           {receipts.map(receipt => {
             const logoSrc = buildImageSrc(receipt.supplierImage);
             const isOpen = !!expanded[receipt.receiptId];
+            const isSystemNumber = receipt.invoiceRegistrationNumber?.startsWith("A");
+            const displayTitle = isSystemNumber
+              ? receipt.receiptDetails[0]?.itemName || "インボイスなし"
+              : receipt.supplierName || "未入力";
             return (
               <article className="receipt-card receipt-card--rich" key={receipt.receiptId}>
                 <button
@@ -432,11 +422,11 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
                   onClick={() => setExpanded(current => ({ ...current, [receipt.receiptId]: !current[receipt.receiptId] }))}
                 >
                   <span className="receipt-expand-icon">{isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
-                  <span className="receipt-logo-box">{logoSrc ? <img src={logoSrc} alt="" /> : <span>R</span>}</span>
+                  <span className="receipt-logo-box">{!isSystemNumber && logoSrc ? <img src={logoSrc} alt="" /> : <span>{isSystemNumber ? "自" : "R"}</span>}</span>
                   <span className="receipt-card-main">
                     <span>{formatDateWithWeekday(receipt.receiptDate)} {receipt.receiptTime}</span>
-                    <strong>{receipt.supplierName || "未入力"}</strong>
-                    <small>{receipt.receiptId}</small>
+                    <strong>{displayTitle}</strong>
+                    <small>{isSystemNumber ? "インボイスなし" : receipt.receiptId}</small>
                   </span>
                   <span className="receipt-card-total">
                     <small>{receipt.receiptDetails.length} 件</small>
@@ -455,7 +445,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
                     {receipt.receiptDetails.map((item, index) => (
                       <div className="receipt-detail-row" key={`${receipt.receiptId}-detail-${index}`}>
                         <strong>{item.itemName || "明細"}</strong>
-                        <span>{item.category1 || "-"} / {item.category2 || "-"}</span>
+                        <span>{[item.category1, item.category2].filter(Boolean).join(" / ") || "-"}</span>
                         <em>×{parseNumber(item.quantity)}</em>
                         <b>{yen(item.totalPrice)}</b>
                       </div>
@@ -490,7 +480,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
               category2={category2}
               initial={{
                 receiptId: editing.receiptId,
-                invoiceRegistrationNumber: invoiceDigits(editing.invoiceRegistrationNumber),
+                invoiceRegistrationNumber: editing.invoiceRegistrationNumber,
                 supplierName: editing.supplierName,
                 supplierImage: editing.supplierImage,
                 receiptDate: editing.receiptDate,

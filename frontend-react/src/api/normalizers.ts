@@ -63,6 +63,7 @@ export function normalizeInvoice(value: string, optional = false): string {
    */
   // DBとAPIでは必ずT + 13桁へ正規化して扱う。
   const raw = String(value || "").trim().toUpperCase();
+  if (raw.startsWith("A") && /^A\d{13}$/.test(raw)) return raw;
   const digits = raw.startsWith("T") ? raw.slice(1) : raw;
   if (!digits && optional) return "";
   if (!/^\d{13}$/.test(digits)) {
@@ -82,7 +83,8 @@ export function invoiceDigits(value: string | null | undefined): string {
    *   string: 13桁の数字部分。
    */
   // 画面入力欄ではTを固定表示するため、数字部分だけを返す。
-  return String(value || "").replace(/^T/i, "");
+  const text = String(value || "");
+  return text.startsWith("A") || text.startsWith("a") ? "" : text.replace(/^T/i, "");
 }
 
 export function toTaxFlag(value: unknown): TaxFlag {

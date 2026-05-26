@@ -127,7 +127,8 @@ export type AppSettings = {
   sunrise: string;
   sunset: string;
   largeTextMode: boolean;
-  colorTheme: "teal" | "indigo" | "green" | "orange" | "pink";
+  colorTheme: "kakeibo" | "teal" | "indigo" | "green" | "orange" | "pink" | "sakura" | "sky" | "mono";
+  language?: "ja" | "zh" | "en";
 };
 
 // ダッシュボードで表示可能なウィジェットID。
@@ -164,6 +165,19 @@ export type AuthSession = {
   username: string;
   email?: string;
   nickname: string;
+};
+
+export type RecurringExpense = {
+  id?: number;
+  ruleName: string;
+  dayOfMonth: number;
+  itemName: string;
+  category1: string;
+  category2: string;
+  amount: number;
+  enabled: boolean;
+  lastRunMonth?: string;
+  memo?: string;
 };
 
 // AIレシート利用量の集計。

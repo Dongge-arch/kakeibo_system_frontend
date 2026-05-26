@@ -1,7 +1,7 @@
 import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api/client";
-import { fileToDataUrl, invoiceDigits, parseNumber, toTaxFlag, yen } from "../api/normalizers";
+import { fileToDataUrl, invoiceDigits, parseNumber, toTaxFlag } from "../api/normalizers";
 import type { Category1, Category2, ReceiptForm as ReceiptFormType, ReceiptItem } from "../api/types";
 import { emptyReceipt, ReceiptForm } from "../components/ReceiptForm";
 
@@ -96,38 +96,6 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
               {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
             </button>
           </div>
-        </div>
-
-        <div className="ai-result-summary">
-          <div>
-            <span>店舗</span>
-            <strong>{receipt.supplierName || "未解析"}</strong>
-          </div>
-          <div>
-            <span>日付</span>
-            <strong>{receipt.receiptDate || "-"}</strong>
-          </div>
-          <div>
-            <span>明細</span>
-            <strong>{receipt.receiptDetails.filter(item => item.itemName || item.totalPrice).length}件</strong>
-          </div>
-          <div>
-            <span>推定合計</span>
-            <strong>{yen(receipt.totalPrice)}</strong>
-          </div>
-        </div>
-
-        <div className="ai-detected-list">
-          <h3>読み取り明細</h3>
-          {receipt.receiptDetails.filter(item => item.itemName || item.totalPrice).length === 0 && (
-            <div className="empty-state">画像を解析するとここに結果が表示されます</div>
-          )}
-          {receipt.receiptDetails.filter(item => item.itemName || item.totalPrice).map((item, index) => (
-            <div key={`${item.itemName}-${index}`}>
-              <span>{item.itemName || "品目未入力"}</span>
-              <strong>{yen(item.totalPrice)}</strong>
-            </div>
-          ))}
         </div>
       </section>
 

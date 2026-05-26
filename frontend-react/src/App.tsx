@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api/client";
 import { currentMonth, groupReceipts, monthRange } from "./api/normalizers";
 import type { AiUsageSummary, AppSettings, Budget, Income, ReceiptSummary } from "./api/types";
@@ -6,6 +6,7 @@ import { Layout, navItems, type PageKey } from "./components/Layout";
 import { Toast } from "./components/Toast";
 import { useAuth } from "./hooks/useAuth";
 import { useMasterData } from "./hooks/useMasterData";
+import { t } from "./i18n";
 import { AiLibraryPage } from "./pages/AiLibraryPage";
 import { AiReceiptPage } from "./pages/AiReceiptPage";
 import { BudgetPage } from "./pages/BudgetPage";
@@ -14,6 +15,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { IncomePage } from "./pages/IncomePage";
 import { PlacesPage } from "./pages/PlacesPage";
 import { ReceiptPage } from "./pages/ReceiptPage";
+import { RecurringExpensePage } from "./pages/RecurringExpensePage";
 import { ReceiptsPage } from "./pages/ReceiptsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import "./styles/app.css";
@@ -31,13 +33,14 @@ const defaultSettings: AppSettings = {
   sunrise: "06:00",
   sunset: "18:00",
   largeTextMode: false,
-  colorTheme: "teal"
+  colorTheme: "kakeibo",
+  language: "ja"
 };
 
 export default function App() {
   const auth = useAuth();
   const master = useMasterData(auth.session?.userId || "");
-  const [page, setPage] = useState<PageKey>("settings");
+  const [page, setPage] = useState<PageKey>(() => auth.session ? "dashboard" : "settings");
   const [month, setMonth] = useState(currentMonth());
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -46,12 +49,14 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const lastSessionUser = useRef<string | null>(auth.session?.userId || null);
 
   const title = useMemo(() => {
-    if (!auth.session) return "ログイン";
-    if (page === "settings") return "アカウント設定";
-    return navItems.find(item => item.key === page)?.label || "家計簿";
-  }, [page, auth.session]);
+    const language = settings.language || "ja";
+    if (!auth.session) return t(language, "login");
+    if (page === "settings") return t(language, "settings");
+    return navItems.find(item => item.key === page)?.label(language) || "Kakeibo";
+  }, [page, auth.session, settings.language]);
 
   const notify = useCallback((message: string, tone: ToastState["tone"] = "info") => {
     setToast({ message, tone });
@@ -79,6 +84,7 @@ export default function App() {
     document.documentElement.dataset.theme = resolveDarkMode(next) ? "dark" : "light";
     document.documentElement.dataset.largeText = next.largeTextMode ? "true" : "false";
     document.documentElement.dataset.color = next.colorTheme || "teal";
+    document.documentElement.lang = next.language || "ja";
   }, []);
 
   const refreshDashboard = useCallback(async () => {
@@ -117,8 +123,28 @@ export default function App() {
   }, [auth.session, page]);
 
   useEffect(() => {
+    const nextUser = auth.session?.userId || null;
+    if (nextUser && nextUser !== lastSessionUser.current) {
+      setPage("dashboard");
+    }
+    lastSessionUser.current = nextUser;
+  }, [auth.session?.userId]);
+
+  useEffect(() => {
     refreshDashboard().catch(console.error);
   }, [refreshDashboard]);
+
+  useEffect(() => {
+    if (!auth.session) return;
+    api.recurring.runDue()
+      .then(result => {
+        if (result.createdCount > 0) {
+          notify(`定期出費を${result.createdCount}件登録しました。`, "success");
+          refreshDashboard().catch(console.error);
+        }
+      })
+      .catch(error => notify((error as Error).message, "error"));
+  }, [auth.session?.userId]);
 
   useEffect(() => {
     if (master.error) notify(master.error, "error");
@@ -185,6 +211,9 @@ export default function App() {
     if (page === "receipt") {
       return <ReceiptPage category1={master.category1} category2={master.category2} onSaved={refreshDashboard} notify={notify} />;
     }
+    if (page === "recurring") {
+      return <RecurringExpensePage category1={master.category1} category2={master.category2} onChanged={refreshDashboard} notify={notify} />;
+    }
     if (page === "ai") {
       return (
         <AiReceiptPage
@@ -247,6 +276,7 @@ export default function App() {
         title={title}
         session={auth.session}
         budgetEnabled={settings.budgetEnabled}
+        language={settings.language || "ja"}
         onNavigate={setPage}
         onLogout={auth.logout}
       >

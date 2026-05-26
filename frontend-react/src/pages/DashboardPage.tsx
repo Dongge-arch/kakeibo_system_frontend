@@ -214,17 +214,9 @@ export function DashboardPage({
     saveLayout(next);
   }
 
-  function selectMonth(monthNumber: number) {
-    onMonthChange(buildMonthValue(selectedYear, monthNumber));
-  }
-
   function shiftMonth(delta: number) {
     const date = new Date(selectedYear, selectedMonth - 1 + delta, 1);
     onMonthChange(buildMonthValue(date.getFullYear(), date.getMonth() + 1));
-  }
-
-  function shiftYear(delta: number) {
-    onMonthChange(buildMonthValue(selectedYear + delta, selectedMonth));
   }
 
   function renderWidget(id: DashboardWidgetId) {
@@ -309,7 +301,7 @@ export function DashboardPage({
     }
     if (id === "calendar") return <CalendarWidget month={month} receipts={receipts} incomes={incomes} />;
     if (id === "recentExpense") {
-      return <MiniList rows={recentReceipts.map(row => ({ id: row.receiptId, title: row.supplierName || "未入力", sub: `${row.receiptDate} ${row.receiptTime}`, amount: row.totalPrice }))} />;
+      return <MiniList rows={recentReceipts.map(row => ({ id: row.receiptId, title: receiptDisplayTitle(row), sub: `${row.receiptDate} ${row.receiptTime}`, amount: row.totalPrice }))} />;
     }
     if (id === "recentIncome") {
       return <MiniList rows={recentIncome.map(row => ({ id: String(row.id || row.salaryName), title: row.salaryName || "未入力", sub: row.salaryDate, amount: Number(row.salaryAmount || 0) }))} />;
@@ -345,26 +337,6 @@ export function DashboardPage({
                 <ChevronRight size={18} />
               </button>
               <button type="button" className="month-now-button" onClick={() => onMonthChange(currentMonth())}>今月</button>
-            </div>
-            <div className="dashboard-year-row">
-              <button type="button" onClick={() => shiftYear(-1)}><ChevronLeft size={15} /> 前年</button>
-              <strong>{selectedYear}年</strong>
-              <button type="button" onClick={() => shiftYear(1)}>翌年 <ChevronRight size={15} /></button>
-            </div>
-            <div className="dashboard-month-grid">
-              {Array.from({ length: 12 }, (_, index) => {
-                const monthNumber = index + 1;
-                return (
-                  <button
-                    type="button"
-                    key={monthNumber}
-                    className={monthNumber === selectedMonth ? "is-active" : ""}
-                    onClick={() => selectMonth(monthNumber)}
-                  >
-                    {monthNumber}月
-                  </button>
-                );
-              })}
             </div>
           </div>
           <div className="dashboard-action-row">
@@ -480,7 +452,7 @@ function BudgetStatusCard({ summary, period }: { summary: BudgetSummary; period:
           const rest = row.amount - row.spent;
           return (
             <div key={row.key}>
-              <span>{row.key.replace("__", " / ")}</span>
+              <span>{formatBudgetKey(row.key)}</span>
               <strong className={rest < 0 ? "expense" : "income"}>
                 {rest < 0 ? "+" : ""}{yen(Math.abs(rest))}
               </strong>
@@ -507,6 +479,13 @@ function MiniList({ rows }: { rows: Array<{ id: string; title: string; sub: stri
       ))}
     </div>
   );
+}
+
+function receiptDisplayTitle(receipt: ReceiptSummary) {
+  if (receipt.invoiceRegistrationNumber?.startsWith("A")) {
+    return receipt.receiptDetails[0]?.itemName || "インボイスなし";
+  }
+  return receipt.supplierName || "未入力";
 }
 
 function CalendarWidget({ month, receipts, incomes }: { month: string; receipts: ReceiptSummary[]; incomes: Income[] }) {
@@ -609,6 +588,11 @@ function buildMonthValue(year: number, monthNumber: number) {
   return `${year}-${String(monthNumber).padStart(2, "0")}`;
 }
 
+function formatBudgetKey(key: string) {
+  const [category1, category2] = key.split("__");
+  return category2 && category2 !== "未分類" ? `${category1} / ${category2}` : category1;
+}
+
 function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], period: AppSettings["budgetPeriod"]): BudgetSummary {
   const spentByKey = new Map<string, number>();
   const range = period === "week" ? currentWeekRange() : null;
@@ -650,7 +634,7 @@ function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], perio
 }
 
 function budgetKey(category1: string, category2: string) {
-  return `${category1 || "未分類"}__${category2 || "未分類"}`;
+  return `${category1 || "未分類"}__${category2 || ""}`;
 }
 
 function currentWeekRange() {

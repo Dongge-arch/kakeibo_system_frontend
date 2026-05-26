@@ -15,6 +15,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { AppSettings, AuthSession } from "../api/types";
+import { t } from "../i18n";
 
 type SettingsPageProps = {
   session: AuthSession | null;
@@ -173,14 +174,14 @@ export function SettingsPage({
       <div className="section-heading">
         <div>
           <span className="section-kicker">App</span>
-          <h2>表示設定</h2>
+          <h2>{t(draft.language || "ja", "appSettings")}</h2>
         </div>
-        <span className="autosave-badge">自動保存</span>
+        <span className="autosave-badge">{t(draft.language || "ja", "autoSave")}</span>
       </div>
 
       <div className="settings-grid">
         <div className={`setting-card setting-card--budget ${draft.budgetEnabled ? "" : "is-muted"}`}>
-          <Toggle label="予算機能を使う" value={draft.budgetEnabled} onChange={value => patch({ budgetEnabled: value })} />
+          <Toggle label={t(draft.language || "ja", "budgetEnabled")} value={draft.budgetEnabled} onChange={value => patch({ budgetEnabled: value })} />
           {draft.budgetEnabled && (
             <div className="segmented-control" aria-label="予算単位">
               <button
@@ -188,37 +189,49 @@ export function SettingsPage({
                 className={draft.budgetPeriod === "week" ? "is-active" : ""}
                 onClick={() => patch({ budgetPeriod: "week" })}
               >
-                週予算
+                {t(draft.language || "ja", "weeklyBudget")}
               </button>
               <button
                 type="button"
                 className={draft.budgetPeriod === "month" ? "is-active" : ""}
                 onClick={() => patch({ budgetPeriod: "month" })}
               >
-                月予算
+                {t(draft.language || "ja", "monthlyBudget")}
               </button>
             </div>
           )}
         </div>
-        <Toggle label="ダークモード" value={draft.darkMode} onChange={value => patch({ darkMode: value })} />
-        <Toggle label="時刻で明暗を切り替える" value={draft.autoDark} onChange={value => patch({ autoDark: value })} />
-        <Toggle label="大きい文字" value={draft.largeTextMode} onChange={value => patch({ largeTextMode: value })} />
+        <Toggle label={t(draft.language || "ja", "darkMode")} value={draft.darkMode} onChange={value => patch({ darkMode: value })} />
+        <Toggle label={t(draft.language || "ja", "autoDark")} value={draft.autoDark} onChange={value => patch({ autoDark: value })} />
+        <Toggle label={t(draft.language || "ja", "largeText")} value={draft.largeTextMode} onChange={value => patch({ largeTextMode: value })} />
         <label className="field">
-          <span>日の出</span>
+          <span>{t(draft.language || "ja", "sunrise")}</span>
           <input type="time" value={draft.sunrise} onChange={event => patch({ sunrise: event.target.value })} />
         </label>
         <label className="field">
-          <span>日没</span>
+          <span>{t(draft.language || "ja", "sunset")}</span>
           <input type="time" value={draft.sunset} onChange={event => patch({ sunset: event.target.value })} />
         </label>
         <label className="field">
-          <span>テーマカラー</span>
+          <span>{t(draft.language || "ja", "themeColor")}</span>
           <select value={draft.colorTheme} onChange={event => patch({ colorTheme: event.target.value as AppSettings["colorTheme"] })}>
+            <option value="kakeibo">Kakei</option>
             <option value="teal">Teal</option>
             <option value="green">Green</option>
             <option value="orange">Orange</option>
             <option value="pink">Pink</option>
             <option value="indigo">Indigo</option>
+            <option value="sakura">Sakura</option>
+            <option value="sky">Sky</option>
+            <option value="mono">Mono</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>{t(draft.language || "ja", "language")}</span>
+          <select value={draft.language || "ja"} onChange={event => patch({ language: event.target.value as AppSettings["language"] })}>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+            <option value="en">English</option>
           </select>
         </label>
       </div>
