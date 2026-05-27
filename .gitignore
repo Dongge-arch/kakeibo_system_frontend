@@ -10,6 +10,7 @@ frontend-react/node_modules/
 *.log
 frontend-config.json
 frontend-config.local.json
+frontend-config*.json
 frontend-config.*.json
 !frontend-config.example.json
 frontend-react/public/config.js

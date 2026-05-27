@@ -213,7 +213,7 @@ export function Layout({ page, title, session, budgetEnabled, language, onNaviga
           </div>
           <div className="topbar-actions">
             <button type="button" className="user-chip" onClick={() => navigate("settings")}>
-              <GalleryVerticalEnd size={17} />
+              {session?.avatarImage ? <img className="user-chip-avatar" src={session.avatarImage} alt="" /> : <GalleryVerticalEnd size={17} />}
               <span>{session?.nickname || t(language, "guest")}</span>
             </button>
             {session && <IconButton label={t(language, "logout")} icon={LogOut} onClick={onLogout} />}

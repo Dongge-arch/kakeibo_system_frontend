@@ -25,9 +25,9 @@ export function useMasterData(scopeKey = "") {
         api.master.category2(),
         api.master.salaryCategories()
       ]);
-      setCategory1(uniqueBy(cat1 || [], row => row.CATEGORY1_NAME));
-      setCategory2(uniqueBy(cat2 || [], row => `${row.CATEGORY1_NAME}_${row.CATEGORY2_NAME}`));
-      setSalaryCategories(uniqueBy(salaries || [], row => row.SAL_CAT));
+      setCategory1(uniqueBy(cat1 || [], row => row.category1Name));
+      setCategory2(uniqueBy(cat2 || [], row => `${row.category1Name}_${row.category2Name}`));
+      setSalaryCategories(uniqueBy(salaries || [], row => row.salaryCategoryName));
     } catch (error) {
       setError((error as Error).message);
       throw error;

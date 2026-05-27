@@ -278,15 +278,15 @@ export function ReceiptForm({
               <label className="line-field" data-label="分類">
                 <select value={item.category1} onChange={event => updateItem(index, { category1: event.target.value, category2: "" })}>
                 <option value=""></option>
-                {category1.map(row => <option key={row.CATEGORY1_NAME} value={row.CATEGORY1_NAME}>{row.CATEGORY1_NAME}</option>)}
+                {category1.map(row => <option key={row.category1Name} value={row.category1Name}>{row.category1Name}</option>)}
                 </select>
               </label>
               <label className="line-field" data-label="小分類">
                 <select value={item.category2} onChange={event => updateItem(index, { category2: event.target.value })}>
                 <option value=""></option>
                 {category2
-                  .filter(row => !item.category1 || row.CATEGORY1_NAME === item.category1)
-                  .map(row => <option key={`${row.CATEGORY1_NAME}-${row.CATEGORY2_NAME}`} value={row.CATEGORY2_NAME}>{row.CATEGORY2_NAME}</option>)}
+                  .filter(row => !item.category1 || row.category1Name === item.category1)
+                  .map(row => <option key={`${row.category1Name}-${row.category2Name}`} value={row.category2Name}>{row.category2Name}</option>)}
                 </select>
               </label>
               <label className="line-field" data-label="数量">

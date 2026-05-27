@@ -103,7 +103,7 @@ export function IncomePage({ salaryCategories, onChanged, notify }: IncomePagePr
             <span>分類</span>
             <select value={form.salaryCategory} onChange={event => setForm({ ...form, salaryCategory: event.target.value })}>
               <option value=""></option>
-              {salaryCategories.map(item => <option key={item.SAL_CAT} value={item.SAL_CAT}>{item.SAL_CAT}</option>)}
+              {salaryCategories.map(item => <option key={item.salaryCategoryName} value={item.salaryCategoryName}>{item.salaryCategoryName}</option>)}
             </select>
           </label>
           <label className="field">
@@ -151,7 +151,7 @@ export function IncomePage({ salaryCategories, onChanged, notify }: IncomePagePr
                 setRows(next);
               }}>
                 <option value=""></option>
-                {salaryCategories.map(item => <option key={item.SAL_CAT} value={item.SAL_CAT}>{item.SAL_CAT}</option>)}
+                {salaryCategories.map(item => <option key={item.salaryCategoryName} value={item.salaryCategoryName}>{item.salaryCategoryName}</option>)}
               </select>
               <input type="number" value={row.salaryAmount} onChange={event => {
                 const next = [...rows];

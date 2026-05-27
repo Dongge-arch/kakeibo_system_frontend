@@ -187,6 +187,8 @@ export default function App() {
           login={auth.login}
           register={auth.register}
           logout={auth.logout}
+          updateProfile={auth.updateProfile}
+          previewProfile={auth.previewProfile}
           notify={notify}
         />
       );
@@ -264,6 +266,8 @@ export default function App() {
         login={auth.login}
         register={auth.register}
         logout={auth.logout}
+        updateProfile={auth.updateProfile}
+        previewProfile={auth.previewProfile}
         notify={notify}
       />
     );

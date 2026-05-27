@@ -96,7 +96,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
 
   const category2Choices = useMemo(() => {
     // 大分類が選択されている場合は、対応する小分類だけを候補にする。
-    return category2.filter(row => !form.category1 || row.CATEGORY1_NAME === form.category1);
+    return category2.filter(row => !form.category1 || row.category1Name === form.category1);
   }, [category2, form.category1]);
 
   const exportRows = rawRows;
@@ -354,7 +354,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
               <span>分類</span>
               <select value={form.category1} onChange={event => patchForm({ category1: event.target.value, category2: "" })}>
                 <option value="">全部</option>
-                {category1.map(item => <option key={item.CATEGORY1_NAME} value={item.CATEGORY1_NAME}>{item.CATEGORY1_NAME}</option>)}
+                {category1.map(item => <option key={item.category1Name} value={item.category1Name}>{item.category1Name}</option>)}
               </select>
             </label>
             <label className="field">
@@ -362,7 +362,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
               <select value={form.category2} onChange={event => patchForm({ category2: event.target.value })}>
                 <option value="">全部</option>
                 {category2Choices.map(item => (
-                  <option key={`${item.CATEGORY1_NAME}-${item.CATEGORY2_NAME}`} value={item.CATEGORY2_NAME}>{item.CATEGORY2_NAME}</option>
+                  <option key={`${item.category1Name}-${item.category2Name}`} value={item.category2Name}>{item.category2Name}</option>
                 ))}
               </select>
             </label>
@@ -444,9 +444,11 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
                   <div className="receipt-detail-panel">
                     {receipt.receiptDetails.map((item, index) => (
                       <div className="receipt-detail-row" key={`${receipt.receiptId}-detail-${index}`}>
-                        <strong>{item.itemName || "明細"}</strong>
-                        <span>{[item.category1, item.category2].filter(Boolean).join(" / ") || "-"}</span>
-                        <em>×{parseNumber(item.quantity)}</em>
+                        <strong title={item.itemName || "明細"}>{item.itemName || "明細"}</strong>
+                        <span title={[item.category1, item.category2].filter(Boolean).join(" / ") || "-"}>
+                          {[item.category1, item.category2].filter(Boolean).join(" / ") || "-"}
+                        </span>
+                        <em>数量 ×{parseNumber(item.quantity)}</em>
                         <b>{yen(item.totalPrice)}</b>
                       </div>
                     ))}

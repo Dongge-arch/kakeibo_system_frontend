@@ -6,6 +6,7 @@ import {
   LogOut,
   Mail,
   MonitorCheck,
+  ImagePlus,
   RefreshCw,
   Save,
   ShieldCheck,
@@ -24,6 +25,8 @@ type SettingsPageProps = {
   login: (email: string, password: string) => Promise<AuthSession>;
   register: (email: string, password: string) => Promise<AuthSession>;
   logout: () => Promise<void>;
+  updateProfile: (profile: { nickname: string; avatarImage?: string }) => Promise<AuthSession>;
+  previewProfile: (profile: { nickname?: string; avatarImage?: string }) => void;
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
@@ -38,6 +41,8 @@ export function SettingsPage({
   login,
   register,
   logout,
+  updateProfile,
+  previewProfile,
   notify
 }: SettingsPageProps) {
   const [email, setEmail] = useState("");
@@ -48,8 +53,17 @@ export function SettingsPage({
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [attemptedAuth, setAttemptedAuth] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileName, setProfileName] = useState(session?.nickname || "");
+  const [profileAvatar, setProfileAvatar] = useState(session?.avatarImage || "");
+  const [cropImage, setCropImage] = useState("");
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffsetX, setCropOffsetX] = useState(0);
+  const [cropOffsetY, setCropOffsetY] = useState(0);
   const [draft, setDraft] = useState<AppSettings>(settings);
   const autosaveTimer = useRef<number | null>(null);
+  const cropObjectUrl = useRef<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const cleanEmail = useMemo(() => email.trim().toLowerCase(), [email]);
 
   const emailError = attemptedAuth && !emailPattern.test(cleanEmail)
@@ -67,10 +81,24 @@ export function SettingsPage({
   }, [settings]);
 
   useEffect(() => {
+    setProfileName(session?.nickname || "");
+    setProfileAvatar(session?.avatarImage || "");
+  }, [session?.nickname, session?.avatarImage]);
+
+  useEffect(() => {
+    if (!session) return;
+    previewProfile({
+      nickname: profileName || session.nickname,
+      avatarImage: profileAvatar
+    });
+  }, [profileName, profileAvatar]);
+
+  useEffect(() => {
     return () => {
       if (autosaveTimer.current) {
         window.clearTimeout(autosaveTimer.current);
       }
+      revokeCropObjectUrl();
     };
   }, []);
 
@@ -167,6 +195,60 @@ export function SettingsPage({
       setIssuedToken("");
       setNewPassword("");
     }
+  }
+
+  async function updateAccountProfile() {
+    if (!profileName.trim()) {
+      notify("表示名を入力してください。", "error");
+      return;
+    }
+    setProfileBusy(true);
+    try {
+      await updateProfile({ nickname: profileName.trim(), avatarImage: profileAvatar });
+      notify("プロフィールを更新しました。", "success");
+    } catch (error) {
+      notify((error as Error).message, "error");
+    } finally {
+      setProfileBusy(false);
+    }
+  }
+
+  async function chooseAvatar(file: File | null) {
+    if (!file) return;
+    if (file.type && !file.type.startsWith("image/")) {
+      notify("画像ファイルを選択してください。", "error");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      notify("画像ファイルは12MB以下にしてください。", "error");
+      return;
+    }
+    revokeCropObjectUrl();
+    const objectUrl = URL.createObjectURL(file);
+    cropObjectUrl.current = objectUrl;
+    setCropImage(objectUrl);
+    setCropZoom(1);
+    setCropOffsetX(0);
+    setCropOffsetY(0);
+  }
+
+  async function applyAvatarCrop() {
+    if (!cropImage) return;
+    const cropped = await cropSquareImage(cropImage, cropZoom, cropOffsetX, cropOffsetY);
+    setProfileAvatar(cropped);
+    setCropImage("");
+    revokeCropObjectUrl();
+  }
+
+  function closeAvatarCrop() {
+    setCropImage("");
+    revokeCropObjectUrl();
+  }
+
+  function revokeCropObjectUrl() {
+    if (!cropObjectUrl.current) return;
+    URL.revokeObjectURL(cropObjectUrl.current);
+    cropObjectUrl.current = null;
   }
 
   const settingsPanel = (
@@ -388,7 +470,9 @@ export function SettingsPage({
         </div>
 
         <div className="session-summary">
-          <div className="session-avatar">{(session.nickname || session.email || session.username || "U").slice(0, 1).toUpperCase()}</div>
+          <div className="session-avatar">
+            {session.avatarImage ? <img src={session.avatarImage} alt="" /> : (session.nickname || session.email || session.username || "U").slice(0, 1).toUpperCase()}
+          </div>
           <div>
             <span>ログイン中</span>
             <strong>{session.nickname}</strong>
@@ -403,6 +487,37 @@ export function SettingsPage({
           </div>
         </div>
         <div className="profile-box">
+          <div className="profile-edit-card">
+            <div className="profile-avatar-editor">
+              <div className="session-avatar session-avatar--large">
+                {profileAvatar ? <img src={profileAvatar} alt="" /> : (profileName || session.email || "U").slice(0, 1).toUpperCase()}
+              </div>
+              <button
+                type="button"
+                className="command-button command-button--ghost"
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                <ImagePlus size={17} /> アイコン変更
+              </button>
+              <input
+                ref={avatarInputRef}
+                className="visually-hidden-file"
+                type="file"
+                accept="image/*,.heic,.heif"
+                onChange={event => {
+                  chooseAvatar(event.target.files?.[0] || null);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </div>
+            <label className="field">
+              <span>表示名</span>
+              <input value={profileName} onChange={event => setProfileName(event.target.value)} />
+            </label>
+            <button type="button" className="command-button command-button--primary" onClick={updateAccountProfile} disabled={profileBusy}>
+              <Save size={17} /> {profileBusy ? "保存中" : "プロフィール保存"}
+            </button>
+          </div>
           <div>
             <span>表示名</span>
             <strong>{session.nickname}</strong>
@@ -417,6 +532,49 @@ export function SettingsPage({
         </div>
       </section>
       {settingsPanel}
+      {cropImage && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <section className="panel avatar-crop-modal">
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker">Avatar</span>
+                <h2>アイコンを切り抜く</h2>
+              </div>
+            </div>
+            <div className="avatar-crop-stage">
+              <img
+                src={cropImage}
+                alt=""
+                onError={() => {
+                  notify("画像を読み込めませんでした。SafariでHEICを選択した場合は、JPEGまたはPNGで再度選択してください。", "error");
+                  closeAvatarCrop();
+                }}
+                style={{
+                  transform: `translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropZoom})`
+                }}
+              />
+            </div>
+            <div className="avatar-crop-controls">
+              <label className="field">
+                <span>拡大</span>
+                <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={event => setCropZoom(Number(event.target.value))} />
+              </label>
+              <label className="field">
+                <span>左右</span>
+                <input type="range" min="-90" max="90" step="1" value={cropOffsetX} onChange={event => setCropOffsetX(Number(event.target.value))} />
+              </label>
+              <label className="field">
+                <span>上下</span>
+                <input type="range" min="-90" max="90" step="1" value={cropOffsetY} onChange={event => setCropOffsetY(Number(event.target.value))} />
+              </label>
+            </div>
+            <div className="toolbar-actions avatar-crop-actions">
+              <button type="button" className="command-button command-button--ghost" onClick={closeAvatarCrop}>キャンセル</button>
+              <button type="button" className="command-button command-button--primary" onClick={applyAvatarCrop}>切り抜く</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -428,4 +586,32 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
       <input type="checkbox" checked={value} onChange={event => onChange(event.target.checked)} />
     </label>
   );
+}
+
+function cropSquareImage(dataUrl: string, zoom: number, offsetX: number, offsetY: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      const size = 256;
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error("画像を処理できませんでした。"));
+        return;
+      }
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, size, size);
+      const baseScale = Math.max(size / image.width, size / image.height) * zoom;
+      const drawWidth = image.width * baseScale;
+      const drawHeight = image.height * baseScale;
+      const x = (size - drawWidth) / 2 + offsetX;
+      const y = (size - drawHeight) / 2 + offsetY;
+      context.drawImage(image, x, y, drawWidth, drawHeight);
+      resolve(canvas.toDataURL("image/jpeg", 0.86));
+    };
+    image.onerror = () => reject(new Error("画像を読み込めませんでした。"));
+    image.src = dataUrl;
+  });
 }

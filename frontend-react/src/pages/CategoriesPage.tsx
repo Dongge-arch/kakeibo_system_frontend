@@ -15,75 +15,75 @@ type CategoriesPageProps = {
 const defaultCategory1 = ["食費", "日用品", "交通", "住居", "水道光熱", "通信", "医療", "美容", "衣服", "娯楽", "交際", "教育", "ペット", "税金・保険", "その他"];
 
 const defaultCategory2 = [
-  { category1_name: "食費", category2_name: "米・パン・麺", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "肉・魚", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "野菜・果物", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "卵・乳製品", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "惣菜・冷凍食品", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "菓子・デザート", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "調味料", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "飲料", tax_rate: 0.08 },
-  { category1_name: "食費", category2_name: "外食", tax_rate: 0.1 },
-  { category1_name: "食費", category2_name: "カフェ", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "洗剤・掃除用品", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "紙用品", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "キッチン用品", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "バス・トイレ用品", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "衛生用品", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "文具・事務用品", tax_rate: 0.1 },
-  { category1_name: "日用品", category2_name: "小型雑貨", tax_rate: 0.1 },
-  { category1_name: "交通", category2_name: "電車・バス", tax_rate: 0.1 },
-  { category1_name: "交通", category2_name: "タクシー", tax_rate: 0.1 },
-  { category1_name: "交通", category2_name: "ガソリン", tax_rate: 0.1 },
-  { category1_name: "交通", category2_name: "駐車場", tax_rate: 0.1 },
-  { category1_name: "交通", category2_name: "高速料金", tax_rate: 0.1 },
-  { category1_name: "交通", category2_name: "自転車", tax_rate: 0.1 },
-  { category1_name: "住居", category2_name: "家賃", tax_rate: 0.1 },
-  { category1_name: "住居", category2_name: "管理費", tax_rate: 0.1 },
-  { category1_name: "住居", category2_name: "家具", tax_rate: 0.1 },
-  { category1_name: "住居", category2_name: "家電", tax_rate: 0.1 },
-  { category1_name: "住居", category2_name: "修繕・工具", tax_rate: 0.1 },
-  { category1_name: "水道光熱", category2_name: "電気", tax_rate: 0.1 },
-  { category1_name: "水道光熱", category2_name: "ガス", tax_rate: 0.1 },
-  { category1_name: "水道光熱", category2_name: "水道", tax_rate: 0.1 },
-  { category1_name: "通信", category2_name: "携帯電話", tax_rate: 0.1 },
-  { category1_name: "通信", category2_name: "インターネット", tax_rate: 0.1 },
-  { category1_name: "通信", category2_name: "サブスク", tax_rate: 0.1 },
-  { category1_name: "通信", category2_name: "郵便・配送", tax_rate: 0.1 },
-  { category1_name: "医療", category2_name: "病院", tax_rate: 0.1 },
-  { category1_name: "医療", category2_name: "薬・処方箋", tax_rate: 0.1 },
-  { category1_name: "医療", category2_name: "歯科", tax_rate: 0.1 },
-  { category1_name: "医療", category2_name: "検査・予防", tax_rate: 0.1 },
-  { category1_name: "美容", category2_name: "美容院", tax_rate: 0.1 },
-  { category1_name: "美容", category2_name: "化粧品", tax_rate: 0.1 },
-  { category1_name: "美容", category2_name: "スキンケア", tax_rate: 0.1 },
-  { category1_name: "美容", category2_name: "理容・ネイル", tax_rate: 0.1 },
-  { category1_name: "衣服", category2_name: "服", tax_rate: 0.1 },
-  { category1_name: "衣服", category2_name: "靴", tax_rate: 0.1 },
-  { category1_name: "衣服", category2_name: "バッグ・小物", tax_rate: 0.1 },
-  { category1_name: "衣服", category2_name: "クリーニング", tax_rate: 0.1 },
-  { category1_name: "娯楽", category2_name: "映画・配信", tax_rate: 0.1 },
-  { category1_name: "娯楽", category2_name: "書籍", tax_rate: 0.1 },
-  { category1_name: "娯楽", category2_name: "ゲーム", tax_rate: 0.1 },
-  { category1_name: "娯楽", category2_name: "旅行・宿泊", tax_rate: 0.1 },
-  { category1_name: "娯楽", category2_name: "イベント", tax_rate: 0.1 },
-  { category1_name: "娯楽", category2_name: "スポーツ", tax_rate: 0.1 },
-  { category1_name: "交際", category2_name: "贈答", tax_rate: 0.1 },
-  { category1_name: "交際", category2_name: "会食", tax_rate: 0.1 },
-  { category1_name: "交際", category2_name: "冠婚葬祭", tax_rate: 0.1 },
-  { category1_name: "交際", category2_name: "家族・友人", tax_rate: 0.1 },
-  { category1_name: "教育", category2_name: "学習", tax_rate: 0.1 },
-  { category1_name: "教育", category2_name: "教材・書籍", tax_rate: 0.1 },
-  { category1_name: "教育", category2_name: "資格・試験", tax_rate: 0.1 },
-  { category1_name: "ペット", category2_name: "フード", tax_rate: 0.1 },
-  { category1_name: "ペット", category2_name: "用品", tax_rate: 0.1 },
-  { category1_name: "ペット", category2_name: "病院・ケア", tax_rate: 0.1 },
-  { category1_name: "税金・保険", category2_name: "保険料", tax_rate: 0.1 },
-  { category1_name: "税金・保険", category2_name: "税金", tax_rate: 0.1 },
-  { category1_name: "税金・保険", category2_name: "年金", tax_rate: 0.1 },
-  { category1_name: "その他", category2_name: "手数料", tax_rate: 0.1 },
-  { category1_name: "その他", category2_name: "現金調整", tax_rate: 0.1 },
-  { category1_name: "その他", category2_name: "未分類", tax_rate: 0.1 }
+  { category1Name: "食費", category2Name: "米・パン・麺", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "肉・魚", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "野菜・果物", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "卵・乳製品", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "惣菜・冷凍食品", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "菓子・デザート", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "調味料", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "飲料", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "外食", taxRate: 0.1 },
+  { category1Name: "食費", category2Name: "カフェ", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "洗剤・掃除用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "紙用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "キッチン用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "バス・トイレ用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "衛生用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "文具・事務用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "小型雑貨", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "電車・バス", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "タクシー", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "ガソリン", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "駐車場", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "高速料金", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "自転車", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "家賃", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "管理費", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "家具", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "家電", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "修繕・工具", taxRate: 0.1 },
+  { category1Name: "水道光熱", category2Name: "電気", taxRate: 0.1 },
+  { category1Name: "水道光熱", category2Name: "ガス", taxRate: 0.1 },
+  { category1Name: "水道光熱", category2Name: "水道", taxRate: 0.1 },
+  { category1Name: "通信", category2Name: "携帯電話", taxRate: 0.1 },
+  { category1Name: "通信", category2Name: "インターネット", taxRate: 0.1 },
+  { category1Name: "通信", category2Name: "サブスク", taxRate: 0.1 },
+  { category1Name: "通信", category2Name: "郵便・配送", taxRate: 0.1 },
+  { category1Name: "医療", category2Name: "病院", taxRate: 0.1 },
+  { category1Name: "医療", category2Name: "薬・処方箋", taxRate: 0.1 },
+  { category1Name: "医療", category2Name: "歯科", taxRate: 0.1 },
+  { category1Name: "医療", category2Name: "検査・予防", taxRate: 0.1 },
+  { category1Name: "美容", category2Name: "美容院", taxRate: 0.1 },
+  { category1Name: "美容", category2Name: "化粧品", taxRate: 0.1 },
+  { category1Name: "美容", category2Name: "スキンケア", taxRate: 0.1 },
+  { category1Name: "美容", category2Name: "理容・ネイル", taxRate: 0.1 },
+  { category1Name: "衣服", category2Name: "服", taxRate: 0.1 },
+  { category1Name: "衣服", category2Name: "靴", taxRate: 0.1 },
+  { category1Name: "衣服", category2Name: "バッグ・小物", taxRate: 0.1 },
+  { category1Name: "衣服", category2Name: "クリーニング", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "映画・配信", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "書籍", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "ゲーム", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "旅行・宿泊", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "イベント", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "スポーツ", taxRate: 0.1 },
+  { category1Name: "交際", category2Name: "贈答", taxRate: 0.1 },
+  { category1Name: "交際", category2Name: "会食", taxRate: 0.1 },
+  { category1Name: "交際", category2Name: "冠婚葬祭", taxRate: 0.1 },
+  { category1Name: "交際", category2Name: "家族・友人", taxRate: 0.1 },
+  { category1Name: "教育", category2Name: "学習", taxRate: 0.1 },
+  { category1Name: "教育", category2Name: "教材・書籍", taxRate: 0.1 },
+  { category1Name: "教育", category2Name: "資格・試験", taxRate: 0.1 },
+  { category1Name: "ペット", category2Name: "フード", taxRate: 0.1 },
+  { category1Name: "ペット", category2Name: "用品", taxRate: 0.1 },
+  { category1Name: "ペット", category2Name: "病院・ケア", taxRate: 0.1 },
+  { category1Name: "税金・保険", category2Name: "保険料", taxRate: 0.1 },
+  { category1Name: "税金・保険", category2Name: "税金", taxRate: 0.1 },
+  { category1Name: "税金・保険", category2Name: "年金", taxRate: 0.1 },
+  { category1Name: "その他", category2Name: "手数料", taxRate: 0.1 },
+  { category1Name: "その他", category2Name: "現金調整", taxRate: 0.1 },
+  { category1Name: "その他", category2Name: "未分類", taxRate: 0.1 }
 ];
 
 const defaultSalaryCategories = ["給与", "賞与", "副業", "投資", "返金", "その他"];
@@ -97,7 +97,7 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
   const [busy, setBusy] = useState(false);
 
   const visibleCategory2 = useMemo(() => {
-    return category2.filter(item => item.CATEGORY1_NAME === selectedCategory1);
+    return category2.filter(item => item.category1Name === selectedCategory1);
   }, [category2, selectedCategory1]);
 
   useEffect(() => {
@@ -106,11 +106,11 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
       return;
     }
     if (!selectedCategory1) {
-      setSelectedCategory1(category1[0]?.CATEGORY1_NAME || "");
+      setSelectedCategory1(category1[0]?.category1Name || "");
       return;
     }
-    if (category1.some(item => item.CATEGORY1_NAME === selectedCategory1) || busy) return;
-    setSelectedCategory1(category1[0]?.CATEGORY1_NAME || "");
+    if (category1.some(item => item.category1Name === selectedCategory1) || busy) return;
+    setSelectedCategory1(category1[0]?.category1Name || "");
   }, [busy, category1, selectedCategory1]);
 
   async function run(action: () => Promise<unknown>, message: string, after?: () => void) {
@@ -213,15 +213,15 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
         </div>
         <div className="pill-list">
           {category1.map(item => (
-            <span key={item.CATEGORY1_NAME} className={item.CATEGORY1_NAME === selectedCategory1 ? "is-selected" : ""}>
-              <button type="button" onClick={() => setSelectedCategory1(item.CATEGORY1_NAME)}>
-                {item.CATEGORY1_NAME}
+            <span key={item.category1Name} className={item.category1Name === selectedCategory1 ? "is-selected" : ""}>
+              <button type="button" onClick={() => setSelectedCategory1(item.category1Name)}>
+                {item.category1Name}
               </button>
               <IconButton
                 label="削除"
                 icon={Trash2}
                 variant="danger"
-                onClick={() => run(() => api.master.deleteCategory1(item.CATEGORY1_NAME), "削除しました。")}
+                onClick={() => run(() => api.master.deleteCategory1(item.category1Name), "削除しました。")}
               />
             </span>
           ))}
@@ -237,7 +237,7 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
         </div>
         <div className="inline-form inline-form--wide">
           <select value={selectedCategory1} onChange={event => setSelectedCategory1(event.target.value)}>
-            {category1.map(item => <option key={item.CATEGORY1_NAME} value={item.CATEGORY1_NAME}>{item.CATEGORY1_NAME}</option>)}
+            {category1.map(item => <option key={item.category1Name} value={item.category1Name}>{item.category1Name}</option>)}
           </select>
           <input value={newCategory2} onChange={event => setNewCategory2(event.target.value)} placeholder="新しい小分類" />
           <select value={taxRate} onChange={event => setTaxRate(Number(event.target.value))}>
@@ -252,15 +252,15 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
           {!selectedCategory1 && <div className="empty-state">大分類を選択してください</div>}
           {selectedCategory1 && visibleCategory2.length === 0 && <div className="empty-state">小分類なし</div>}
           {visibleCategory2.map(item => (
-            <div key={`${item.CATEGORY1_NAME}-${item.CATEGORY2_NAME}`}>
-              <span>{item.CATEGORY1_NAME}</span>
-              <strong>{item.CATEGORY2_NAME}</strong>
-              <em>{Number(item.TAX_RATE) === 0.08 ? "8%" : "10%"}</em>
+            <div key={`${item.category1Name}-${item.category2Name}`}>
+              <span>{item.category1Name}</span>
+              <strong>{item.category2Name}</strong>
+              <em>{Number(item.taxRate) === 0.08 ? "8%" : "10%"}</em>
               <IconButton
                 label="削除"
                 icon={Trash2}
                 variant="danger"
-                onClick={() => run(() => api.master.deleteCategory2(item.CATEGORY1_NAME, item.CATEGORY2_NAME), "削除しました。")}
+                onClick={() => run(() => api.master.deleteCategory2(item.category1Name, item.category2Name), "削除しました。")}
               />
             </div>
           ))}
@@ -282,13 +282,13 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
         </div>
         <div className="pill-list">
           {salaryCategories.map(item => (
-            <span key={item.SAL_CAT}>
-              {item.SAL_CAT}
+            <span key={item.salaryCategoryName}>
+              {item.salaryCategoryName}
               <IconButton
                 label="削除"
                 icon={Trash2}
                 variant="danger"
-                onClick={() => run(() => api.master.deleteSalaryCategory(item.SAL_CAT), "削除しました。")}
+                onClick={() => run(() => api.master.deleteSalaryCategory(item.salaryCategoryName), "削除しました。")}
               />
             </span>
           ))}

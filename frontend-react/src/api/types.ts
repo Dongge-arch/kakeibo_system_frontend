@@ -2,20 +2,20 @@ export type TaxFlag = "0" | "1";
 
 // 支出大分類マスタ。
 export type Category1 = {
-  CATEGORY1_NAME: string;
+  category1Name: string;
 };
 
-// 支出小分類マスタ。TAX_RATEは税込/税抜計算で使う。
+// 支出小分類マスタ。taxRateは税込/税抜計算で使う。
 export type Category2 = {
-  CATEGORY1_NAME: string;
-  CATEGORY2_NAME: string;
-  TAX_RATE: number;
+  category1Name: string;
+  category2Name: string;
+  taxRate: number;
 };
 
 // 入金分類マスタ。
 export type SalaryCategory = {
   id?: number;
-  SAL_CAT: string;
+  salaryCategoryName: string;
 };
 
 // レシート明細1行。
@@ -165,6 +165,7 @@ export type AuthSession = {
   username: string;
   email?: string;
   nickname: string;
+  avatarImage?: string;
 };
 
 export type RecurringExpense = {

@@ -55,6 +55,7 @@ const TOKEN_KEY = "kakeibo.auth.token";
 const SESSION_KEY = "kakeibo.auth.session";
 const SESSION_COOKIE_KEY = "kakeibo_auth_session";
 const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
+const MAX_AUTH_HEADER_TOKEN_LENGTH = 6000;
 
 export function apiUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
@@ -104,13 +105,11 @@ function parseMaybeJson<T>(value: T | string | null | undefined): T | null {
 function authHeaders(): Record<string, string> {
   // すべての業務APIへ保存済みJWTを自動で付ける。
   const session = getStoredSession();
-  const token = localStorage.getItem(TOKEN_KEY) || session?.token;
+  const token = localStorage.getItem(TOKEN_KEY) || session?.token || "";
   const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  if (session?.userId) headers["x-kakeibo-user-id"] = session.userId;
-  if (session?.email || session?.username) headers["x-kakeibo-user-email"] = session.email || session.username;
-  if (session?.username) headers["x-kakeibo-user-name"] = session.username;
-  if (session?.nickname) headers["x-kakeibo-user-nickname"] = session.nickname;
+  if (token && token.length <= MAX_AUTH_HEADER_TOKEN_LENGTH) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   if (APP_API_KEY) headers["x-api-key"] = APP_API_KEY;
   return headers;
 }
@@ -139,11 +138,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: "omit",
+      mode: "cors",
       ...init,
       headers
     });
-  } catch {
-    throw new Error(`APIに接続できませんでした。通信環境、CORS、API URLを確認してください。対象: ${path}`);
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    throw new Error(`APIに接続できませんでした。通信環境、CORS、API URLを確認してください。対象: ${path} / 詳細: ${detail}`);
   }
   const payload = await response.json().catch(() => null) as ApiEnvelope<T> | T | null;
   const envelope = payload && typeof payload === "object" && "statusCode" in payload ? payload as ApiEnvelope<T> : null;
@@ -229,7 +231,14 @@ function readSessionCookie(): AuthSession | null {
 
 function writeSessionCookie(session: AuthSession): void {
   if (typeof document === "undefined") return;
-  const value = encodeURIComponent(JSON.stringify(session));
+  const cookieSession = {
+    userId: session.userId,
+    username: session.username,
+    email: session.email,
+    nickname: session.nickname,
+    token: session.token
+  };
+  const value = encodeURIComponent(JSON.stringify(cookieSession));
   document.cookie = `${SESSION_COOKIE_KEY}=${value}; Max-Age=${SESSION_COOKIE_MAX_AGE}; Path=/; SameSite=Lax`;
 }
 
@@ -307,6 +316,8 @@ export const api = {
     resetPassword: (email: string, resetToken: string, newPassword: string) =>
       post<{ ok: boolean; message?: string }>("/user/password-reset/confirm", { email, resetToken, newPassword }),
     me: (token: string) => post<AuthSession | null>("/user/me", { token }),
+    updateProfile: (profile: { userId: string; nickname: string; avatarImage?: string }) =>
+      post<AuthSession>("/user/profile", { ...profile, token: getStoredSession()?.token || "" }),
     logout: () => post<{ ok: boolean }>("/user/logout", {})
   },
   settings: {
@@ -321,19 +332,19 @@ export const api = {
     category1: () => get<Category1[]>("/receipt/getcategory1"),
     category2: () => get<Category2[]>("/receipt/getcategory2"),
     salaryCategories: () => get<SalaryCategory[]>("/receipt/getsalarycategory"),
-    addCategory1: (category1_name: string) => post("/receipt/addcategory1", { category1_name }),
-    deleteCategory1: (category1_name: string) => put("/receipt/deletecategory1", { category1_name }),
-    addCategory2: (category1_name: string, category2_name: string, tax_rate: number) =>
-      post("/receipt/addcategory2", { category1_name, category2_name, tax_rate }),
-    deleteCategory2: (category1_name: string, category2_name: string) =>
-      put("/receipt/deletecategory2", { category1_name, category2_name }),
-    addSalaryCategory: (salary_category_name: string) => post("/receipt/addsalarycategory", { salary_category_name }),
+    addCategory1: (category1Name: string) => post("/receipt/addcategory1", { category1Name }),
+    deleteCategory1: (category1Name: string) => put("/receipt/deletecategory1", { category1Name }),
+    addCategory2: (category1Name: string, category2Name: string, taxRate: number) =>
+      post("/receipt/addcategory2", { category1Name, category2Name, taxRate }),
+    deleteCategory2: (category1Name: string, category2Name: string) =>
+      put("/receipt/deletecategory2", { category1Name, category2Name }),
+    addSalaryCategory: (salaryCategoryName: string) => post("/receipt/addsalarycategory", { salaryCategoryName }),
     addDefaultCategories: (payload: {
       category1: string[];
-      category2: Array<{ category1_name: string; category2_name: string; tax_rate: number }>;
+      category2: Array<{ category1Name: string; category2Name: string; taxRate: number }>;
       salaryCategories: string[];
     }) => post("/receipt/adddefaultcategories", payload),
-    deleteSalaryCategory: (salary_category_name: string) => put("/receipt/deletesalarycategory", { salary_category_name }),
+    deleteSalaryCategory: (salaryCategoryName: string) => put("/receipt/deletesalarycategory", { salaryCategoryName }),
     supplierByInvoice: (invoiceNo: string) => get<Array<{ supplierName: string; supplierLogo?: string; taxFlag?: string | number }>>(
       `/receipt/getSupplierByInvoice?invoiceNo=${encodeURIComponent(invoiceNo)}`
     ),

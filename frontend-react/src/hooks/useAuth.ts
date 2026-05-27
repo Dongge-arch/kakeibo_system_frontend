@@ -91,5 +91,21 @@ export function useAuth() {
     setSession(null);
   }, []);
 
-  return { session, loading, login, register, logout };
+  const updateProfile = useCallback(async (profile: { nickname: string; avatarImage?: string }) => {
+    if (!session?.userId) throw new Error("ログインが必要です。");
+    const next = await api.auth.updateProfile({
+      userId: session.userId,
+      nickname: profile.nickname,
+      avatarImage: profile.avatarImage
+    });
+    storeSession(next);
+    setSession(next);
+    return next;
+  }, [session?.userId]);
+
+  const previewProfile = useCallback((profile: { nickname?: string; avatarImage?: string }) => {
+    setSession(current => current ? { ...current, ...profile } : current);
+  }, []);
+
+  return { session, loading, login, register, logout, updateProfile, previewProfile };
 }

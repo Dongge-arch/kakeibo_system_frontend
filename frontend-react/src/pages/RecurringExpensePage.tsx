@@ -13,30 +13,62 @@ type Props = {
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
-const emptyRule: RecurringExpense = {
-  ruleName: "",
-  dayOfMonth: 27,
-  itemName: "",
-  category1: "",
-  category2: "",
-  amount: 0,
-  enabled: true,
-  memo: ""
-};
+function createEmptyRule(): RecurringExpense {
+  return {
+    ruleName: "",
+    dayOfMonth: new Date().getDate(),
+    itemName: "",
+    category1: "",
+    category2: "",
+    amount: 0,
+    enabled: true,
+    memo: ""
+  };
+}
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function scheduledDateForMonth(year: number, monthIndex: number, dayOfMonth: number) {
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  return new Date(year, monthIndex, Math.min(Math.max(1, dayOfMonth), lastDay));
+}
+
+function formatDate(date: Date) {
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function recurringStatus(rule: RecurringExpense) {
+  if (!rule.enabled) {
+    return { label: "停止中", tone: "muted" };
+  }
+  const now = new Date();
+  const monthKey = currentMonthKey();
+  if (rule.lastRunMonth === monthKey) {
+    return { label: "今月登録済み", tone: "success" };
+  }
+  const scheduled = scheduledDateForMonth(now.getFullYear(), now.getMonth(), Number(rule.dayOfMonth || 1));
+  if (now >= scheduled) {
+    return { label: "登録対象", tone: "warning" };
+  }
+  return { label: `次回 ${formatDate(scheduled)}`, tone: "info" };
+}
 
 export function RecurringExpensePage({ category1, category2, onChanged, notify }: Props) {
   const [rules, setRules] = useState<RecurringExpense[]>([]);
-  const [draft, setDraft] = useState<RecurringExpense>(emptyRule);
+  const [draft, setDraft] = useState<RecurringExpense>(createEmptyRule);
   const [editingRule, setEditingRule] = useState<RecurringExpense | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const category2Choices = useMemo(
-    () => category2.filter(row => !draft.category1 || row.CATEGORY1_NAME === draft.category1),
+    () => category2.filter(row => !draft.category1 || row.category1Name === draft.category1),
     [category2, draft.category1]
   );
   const editingCategory2Choices = useMemo(
-    () => category2.filter(row => !editingRule?.category1 || row.CATEGORY1_NAME === editingRule.category1),
+    () => category2.filter(row => !editingRule?.category1 || row.category1Name === editingRule.category1),
     [category2, editingRule?.category1]
   );
 
@@ -60,11 +92,11 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
   }
 
   function edit(rule: RecurringExpense) {
-    setEditingRule({ ...emptyRule, ...rule });
+    setEditingRule({ ...createEmptyRule(), ...rule });
   }
 
   function reset() {
-    setDraft(emptyRule);
+    setDraft(createEmptyRule());
   }
 
   async function submit(event: FormEvent) {
@@ -132,6 +164,7 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
     try {
       const result = await api.recurring.runDue();
       notify(result.createdCount > 0 ? `定期出費を${result.createdCount}件登録しました。` : "登録対象の定期出費はありません。", "info");
+      await load();
       onChanged();
     } catch (error) {
       notify((error as Error).message, "error");
@@ -161,7 +194,7 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
           </label>
           <label className="field">
             <span>毎月の日付</span>
-            <input type="number" min={1} max={31} value={draft.dayOfMonth} onChange={event => patch({ dayOfMonth: Number(event.target.value) })} />
+            <input type="number" inputMode="numeric" min={1} max={31} value={draft.dayOfMonth || ""} onChange={event => patch({ dayOfMonth: Number(event.target.value) })} />
           </label>
           <label className="field">
             <span>明細名</span>
@@ -169,26 +202,30 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
           </label>
           <label className="field">
             <span>金額</span>
-            <input type="number" min={0} value={draft.amount || ""} onChange={event => patch({ amount: parseNumber(event.target.value) })} />
+            <input type="number" inputMode="numeric" min={0} value={draft.amount || ""} onChange={event => patch({ amount: parseNumber(event.target.value) })} />
           </label>
           <label className="field">
             <span>分類</span>
             <select value={draft.category1} onChange={event => patch({ category1: event.target.value, category2: "" })}>
               <option value=""></option>
-              {category1.map(row => <option key={row.CATEGORY1_NAME} value={row.CATEGORY1_NAME}>{row.CATEGORY1_NAME}</option>)}
+              {category1.map(row => <option key={row.category1Name} value={row.category1Name}>{row.category1Name}</option>)}
             </select>
           </label>
           <label className="field">
             <span>小分類</span>
             <select value={draft.category2} onChange={event => patch({ category2: event.target.value })}>
               <option value=""></option>
-              {category2Choices.map(row => <option key={`${row.CATEGORY1_NAME}-${row.CATEGORY2_NAME}`} value={row.CATEGORY2_NAME}>{row.CATEGORY2_NAME}</option>)}
+              {category2Choices.map(row => <option key={`${row.category1Name}-${row.category2Name}`} value={row.category2Name}>{row.category2Name}</option>)}
             </select>
           </label>
           <label className="recurring-toggle">
             <span>有効</span>
             <input type="checkbox" checked={draft.enabled} onChange={event => patch({ enabled: event.target.checked })} />
             <i aria-hidden="true" />
+          </label>
+          <label className="field recurring-field--wide">
+            <span>メモ</span>
+            <input value={draft.memo || ""} placeholder="例：口座引き落とし" onChange={event => patch({ memo: event.target.value })} />
           </label>
           <div className="search-form-actions">
             <button type="button" className="command-button command-button--ghost" onClick={reset}>クリア</button>
@@ -207,25 +244,32 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
         <div className="receipt-list-grid">
           {loading && <div className="empty-state">データを読み込んでいます...</div>}
           {!loading && rules.length === 0 && <div className="empty-state">データなし</div>}
-          {rules.map(rule => (
-            <article className="receipt-card recurring-card" key={rule.id}>
-              <div className="receipt-card-top">
-                <div>
-                  <span>毎月 {rule.dayOfMonth}日</span>
-                  <h3>{rule.ruleName}</h3>
-                  <small>{[rule.category1, rule.category2].filter(Boolean).join(" / ") || "分類なし"}</small>
+          {rules.map(rule => {
+            const status = recurringStatus(rule);
+            return (
+              <article className="receipt-card recurring-card" key={rule.id}>
+                <div className="receipt-card-top">
+                  <div>
+                    <span>毎月 {rule.dayOfMonth}日</span>
+                    <h3>{rule.ruleName}</h3>
+                    <small>{[rule.category1, rule.category2].filter(Boolean).join(" / ") || "分類なし"}</small>
+                  </div>
+                  <strong>{yen(rule.amount)}</strong>
                 </div>
-                <strong>{yen(rule.amount)}</strong>
-              </div>
-              <div className="period-pill">{rule.enabled ? "有効" : "停止中"}{rule.lastRunMonth ? ` / 最終登録 ${rule.lastRunMonth}` : ""}</div>
-              <div className="receipt-card-actions">
-                <button type="button" className="command-button command-button--ghost" onClick={() => edit(rule)}>
-                  <Pencil size={16} /> 編集
-                </button>
-                <IconButton label="削除" icon={Trash2} variant="danger" onClick={() => remove(rule.id)} />
-              </div>
-            </article>
-          ))}
+                <div className="recurring-meta">
+                  <span className={`recurring-status recurring-status--${status.tone}`}>{status.label}</span>
+                  {rule.lastRunMonth && <span>最終登録 {rule.lastRunMonth}</span>}
+                </div>
+                {rule.memo && <p className="recurring-card-note">{rule.memo}</p>}
+                <div className="receipt-card-actions">
+                  <button type="button" className="command-button command-button--ghost" onClick={() => edit(rule)}>
+                    <Pencil size={16} /> 編集
+                  </button>
+                  <IconButton label="削除" icon={Trash2} variant="danger" onClick={() => remove(rule.id)} />
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -246,7 +290,7 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
               </label>
               <label className="field">
                 <span>毎月の日付</span>
-                <input type="number" min={1} max={31} value={editingRule.dayOfMonth} onChange={event => setEditingRule(current => current ? { ...current, dayOfMonth: Number(event.target.value) } : current)} />
+                <input type="number" inputMode="numeric" min={1} max={31} value={editingRule.dayOfMonth || ""} onChange={event => setEditingRule(current => current ? { ...current, dayOfMonth: Number(event.target.value) } : current)} />
               </label>
               <label className="field">
                 <span>明細名</span>
@@ -254,26 +298,30 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
               </label>
               <label className="field">
                 <span>金額</span>
-                <input type="number" min={0} value={editingRule.amount || ""} onChange={event => setEditingRule(current => current ? { ...current, amount: parseNumber(event.target.value) } : current)} />
+                <input type="number" inputMode="numeric" min={0} value={editingRule.amount || ""} onChange={event => setEditingRule(current => current ? { ...current, amount: parseNumber(event.target.value) } : current)} />
               </label>
               <label className="field">
                 <span>分類</span>
                 <select value={editingRule.category1} onChange={event => setEditingRule(current => current ? { ...current, category1: event.target.value, category2: "" } : current)}>
                   <option value=""></option>
-                  {category1.map(row => <option key={row.CATEGORY1_NAME} value={row.CATEGORY1_NAME}>{row.CATEGORY1_NAME}</option>)}
+                  {category1.map(row => <option key={row.category1Name} value={row.category1Name}>{row.category1Name}</option>)}
                 </select>
               </label>
               <label className="field">
                 <span>小分類</span>
                 <select value={editingRule.category2} onChange={event => setEditingRule(current => current ? { ...current, category2: event.target.value } : current)}>
                   <option value=""></option>
-                  {editingCategory2Choices.map(row => <option key={`${row.CATEGORY1_NAME}-${row.CATEGORY2_NAME}`} value={row.CATEGORY2_NAME}>{row.CATEGORY2_NAME}</option>)}
+                  {editingCategory2Choices.map(row => <option key={`${row.category1Name}-${row.category2Name}`} value={row.category2Name}>{row.category2Name}</option>)}
                 </select>
               </label>
               <label className="recurring-toggle recurring-toggle--wide">
                 <span>有効</span>
                 <input type="checkbox" checked={editingRule.enabled} onChange={event => setEditingRule(current => current ? { ...current, enabled: event.target.checked } : current)} />
                 <i aria-hidden="true" />
+              </label>
+              <label className="field recurring-field--wide">
+                <span>メモ</span>
+                <input value={editingRule.memo || ""} onChange={event => setEditingRule(current => current ? { ...current, memo: event.target.value } : current)} />
               </label>
               <div className="search-form-actions">
                 <button type="button" className="command-button command-button--ghost" onClick={() => setEditingRule(null)}>キャンセル</button>

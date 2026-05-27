@@ -24,13 +24,13 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
       const saved = await api.budget.list();
       const savedMap = new Map(saved.map(item => [`${item.category1}/${item.category2 || ""}`, item]));
       const primaryRows = category1.map(item => ({
-        category1: item.CATEGORY1_NAME,
+        category1: item.category1Name,
         category2: "",
-        budgetAmount: Number(savedMap.get(`${item.CATEGORY1_NAME}/`)?.budgetAmount || 0)
+        budgetAmount: Number(savedMap.get(`${item.category1Name}/`)?.budgetAmount || 0)
       }));
       const savedSubRows = saved
         .filter(item => item.category2 && Number(item.budgetAmount || 0) > 0)
-        .filter(item => category1.some(category => category.CATEGORY1_NAME === item.category1));
+        .filter(item => category1.some(category => category.category1Name === item.category1));
       setRows([
         ...primaryRows,
         ...savedSubRows.filter(item => !primaryRows.some(row => row.category1 === item.category1 && row.category2 === item.category2))
@@ -61,11 +61,11 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
 
   function subRowsFor(categoryName: string) {
     return category2
-      .filter(item => item.CATEGORY1_NAME === categoryName)
+      .filter(item => item.category1Name === categoryName)
       .map(item => ({
-        category1: item.CATEGORY1_NAME,
-        category2: item.CATEGORY2_NAME,
-        budgetAmount: Number(rows.find(row => row.category1 === item.CATEGORY1_NAME && row.category2 === item.CATEGORY2_NAME)?.budgetAmount || 0)
+        category1: item.category1Name,
+        category2: item.category2Name,
+        budgetAmount: Number(rows.find(row => row.category1 === item.category1Name && row.category2 === item.category2Name)?.budgetAmount || 0)
       }));
   }
 

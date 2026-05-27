@@ -198,8 +198,8 @@ export function calcItemTotal(item: ReceiptItem, taxFlag: TaxFlag, category2: Ca
    *   number: 再計算後の明細金額。
    */
   // 税区分と小分類の税率を使って明細金額を再計算する。
-  const found = category2.find(row => row.CATEGORY1_NAME === item.category1 && row.CATEGORY2_NAME === item.category2);
-  const taxRate = Number(found?.TAX_RATE ?? item.taxRate ?? 0.1);
+  const found = category2.find(row => row.category1Name === item.category1 && row.category2Name === item.category2);
+  const taxRate = Number(found?.taxRate ?? item.taxRate ?? 0.1);
   const base = Math.max(0, (parseNumber(item.quantity) * parseNumber(item.unitPrice)) - parseNumber(item.discount));
   return Math.round(taxFlag === "1" ? base : base * (1 + taxRate));
 }
