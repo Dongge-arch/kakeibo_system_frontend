@@ -7,6 +7,7 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Trash2,
   X
 } from "lucide-react";
@@ -59,6 +60,8 @@ type SearchForm = {
   totalMax: string;
 };
 
+type ReceiptSortKey = "dateDesc" | "dateAsc" | "totalDesc" | "totalAsc";
+
 const exportLabels = {
   excel: "Excel",
   pdf: "PDF"
@@ -93,12 +96,15 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
   const [saving, setSaving] = useState(false);
   // Excel/PDF出力準備中の種類。
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<ReceiptSortKey>("dateDesc");
 
   const category2Choices = useMemo(() => {
     // 大分類が選択されている場合は、対応する小分類だけを候補にする。
     return category2.filter(row => !form.category1 || row.category1Name === form.category1);
   }, [category2, form.category1]);
 
+  const sortedReceipts = useMemo(() => sortReceipts(receipts, sortKey), [receipts, sortKey]);
   const exportRows = rawRows;
   const selectedYear = Number(form.month.slice(0, 4)) || new Date().getFullYear();
   const selectedMonth = Number(form.month.slice(5, 7)) || new Date().getMonth() + 1;
@@ -317,38 +323,10 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
         </div>
 
         <form className="receipt-search-form" onSubmit={submitSearch}>
-          <div className="receipt-search-grid">
-            <label className="field invoice-field">
-              <span>登録番号</span>
-              <div className="prefix-input prefix-input--plain">
-                <b>T</b>
-                <input
-                  value={form.invoiceDigits}
-                  inputMode="numeric"
-                  maxLength={13}
-                  onChange={event => patchForm({ invoiceDigits: event.target.value.replace(/\D/g, "").slice(0, 13) })}
-                />
-              </div>
-            </label>
+          <div className="receipt-search-grid receipt-search-grid--primary">
             <label className="field">
               <span>場所</span>
               <input value={form.supplierName} onChange={event => patchForm({ supplierName: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>日付 From</span>
-              <input type="date" value={form.dateFrom} onChange={event => patchForm({ dateFrom: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>日付 To</span>
-              <input type="date" value={form.dateTo} onChange={event => patchForm({ dateTo: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>時刻 From</span>
-              <input type="time" value={form.timeFrom} onChange={event => patchForm({ timeFrom: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>時刻 To</span>
-              <input type="time" value={form.timeTo} onChange={event => patchForm({ timeTo: event.target.value })} />
             </label>
             <label className="field">
               <span>分類</span>
@@ -367,20 +345,13 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
               </select>
             </label>
             <label className="field">
-              <span>商品価格 Min</span>
-              <input type="number" value={form.priceMin} onChange={event => patchForm({ priceMin: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>商品価格 Max</span>
-              <input type="number" value={form.priceMax} onChange={event => patchForm({ priceMax: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>総額 Min</span>
-              <input type="number" value={form.totalMin} onChange={event => patchForm({ totalMin: event.target.value })} />
-            </label>
-            <label className="field">
-              <span>総額 Max</span>
-              <input type="number" value={form.totalMax} onChange={event => patchForm({ totalMax: event.target.value })} />
+              <span>並び順</span>
+              <select value={sortKey} onChange={event => setSortKey(event.target.value as ReceiptSortKey)}>
+                <option value="dateDesc">日付 新しい順</option>
+                <option value="dateAsc">日付 古い順</option>
+                <option value="totalDesc">総額 高い順</option>
+                <option value="totalAsc">総額 低い順</option>
+              </select>
             </label>
           </div>
           <div className="receipt-month-bar">
@@ -390,6 +361,9 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
             <button type="button" onClick={() => applyMonth(currentMonth())}>今月</button>
           </div>
           <div className="search-form-actions">
+            <button type="button" className="command-button command-button--ghost" onClick={() => setAdvancedOpen(true)}>
+              <SlidersHorizontal size={17} /> 詳細条件
+            </button>
             <button type="button" className="command-button command-button--ghost" onClick={resetSearch}>条件クリア</button>
             <button type="submit" className="command-button command-button--primary" disabled={loading}>
               <Search size={17} /> 検索
@@ -401,13 +375,13 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
       <section className="panel">
         <div className="result-summary">
           <span>検索結果</span>
-          <strong>{receipts.length} 件</strong>
+          <strong>{sortedReceipts.length} 件</strong>
           <em>明細 {exportRows.length} 件</em>
         </div>
         <div className="receipt-list-grid">
           {loading && receipts.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
           {!loading && receipts.length === 0 && <div className="empty-state">データなし</div>}
-          {receipts.map(receipt => {
+          {sortedReceipts.map(receipt => {
             const logoSrc = buildImageSrc(receipt.supplierImage);
             const isOpen = !!expanded[receipt.receiptId];
             const isSystemNumber = receipt.invoiceRegistrationNumber?.startsWith("A");
@@ -467,6 +441,79 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
         </div>
       </section>
 
+      {advancedOpen && (
+        <div className="drawer-layer">
+          <div className="drawer receipt-filter-drawer">
+            <div className="drawer-head">
+              <div>
+                <span className="section-kicker">Filter</span>
+                <h2>詳細条件</h2>
+              </div>
+              <IconButton label="閉じる" icon={X} onClick={() => setAdvancedOpen(false)} />
+            </div>
+            <div className="receipt-search-grid receipt-search-grid--advanced">
+              <label className="field invoice-field">
+                <span>登録番号</span>
+                <div className="prefix-input prefix-input--plain">
+                  <b>T</b>
+                  <input
+                    value={form.invoiceDigits}
+                    inputMode="numeric"
+                    maxLength={13}
+                    onChange={event => patchForm({ invoiceDigits: event.target.value.replace(/\D/g, "").slice(0, 13) })}
+                  />
+                </div>
+              </label>
+              <label className="field">
+                <span>日付 From</span>
+                <input type="date" value={form.dateFrom} onChange={event => patchForm({ dateFrom: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>日付 To</span>
+                <input type="date" value={form.dateTo} onChange={event => patchForm({ dateTo: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>時刻 From</span>
+                <input type="time" value={form.timeFrom} onChange={event => patchForm({ timeFrom: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>時刻 To</span>
+                <input type="time" value={form.timeTo} onChange={event => patchForm({ timeTo: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>商品価格 Min</span>
+                <input type="number" value={form.priceMin} onChange={event => patchForm({ priceMin: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>商品価格 Max</span>
+                <input type="number" value={form.priceMax} onChange={event => patchForm({ priceMax: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>総額 Min</span>
+                <input type="number" value={form.totalMin} onChange={event => patchForm({ totalMin: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>総額 Max</span>
+                <input type="number" value={form.totalMax} onChange={event => patchForm({ totalMax: event.target.value })} />
+              </label>
+            </div>
+            <div className="drawer-actions">
+              <button type="button" className="command-button command-button--ghost" onClick={resetSearch}>条件クリア</button>
+              <button
+                type="button"
+                className="command-button command-button--primary"
+                onClick={() => {
+                  setAdvancedOpen(false);
+                  runSearch().catch(console.error);
+                }}
+              >
+                <Search size={17} /> 条件を反映
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {editing && (
         <div className="drawer-layer">
           <div className="drawer">
@@ -501,6 +548,24 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
       )}
     </div>
   );
+}
+
+function sortReceipts(receipts: ReceiptSummary[], sortKey: ReceiptSortKey): ReceiptSummary[] {
+  const sorted = [...receipts];
+  sorted.sort((a, b) => {
+    if (sortKey === "totalDesc") return Number(b.totalPrice || 0) - Number(a.totalPrice || 0);
+    if (sortKey === "totalAsc") return Number(a.totalPrice || 0) - Number(b.totalPrice || 0);
+    const diff = receiptDateTimeValue(a) - receiptDateTimeValue(b);
+    return sortKey === "dateAsc" ? diff : -diff;
+  });
+  return sorted;
+}
+
+function receiptDateTimeValue(receipt: ReceiptSummary): number {
+  const date = String(receipt.receiptDate || "").replace(/\//g, "-");
+  const time = String(receipt.receiptTime || "00:00").replace(/^(\d{2})(\d{2})(\d{2})$/, "$1:$2:$3");
+  const parsed = Date.parse(`${date}T${time || "00:00"}`);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function initialSearchForm(): SearchForm {

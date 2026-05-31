@@ -430,7 +430,9 @@ img {
   padding: clamp(16px, 2.4vw, 24px);
   border-radius: var(--radius);
   color: #fff;
-  background: linear-gradient(105deg, rgba(32, 33, 29, 0.98), rgba(22, 124, 114, 0.90));
+  background:
+    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--accent) 72%, transparent), transparent 34%),
+    linear-gradient(105deg, color-mix(in srgb, var(--ink) 86%, black), color-mix(in srgb, var(--teal) 86%, var(--ink)));
   display: flex;
   justify-content: space-between;
   align-items: end;
@@ -438,7 +440,7 @@ img {
 }
 
 .dashboard-band .eyebrow {
-  color: #bde8dc;
+  color: color-mix(in srgb, var(--teal-2) 82%, white);
 }
 
 .dashboard-band h2 {
@@ -615,6 +617,17 @@ img {
   background: var(--panel);
   box-shadow: var(--shadow);
   overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.dashboard-widget.is-dragging {
+  transform: scale(.985);
+  border-color: color-mix(in srgb, var(--teal) 62%, var(--line));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .18);
+  opacity: .9;
 }
 
 .dashboard-widget--clock {
@@ -653,6 +666,9 @@ img {
 .dashboard-widget-header h3 {
   margin: 0;
   font-size: 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dashboard-widget-header span {
@@ -660,9 +676,31 @@ img {
   font-size: 12px;
 }
 
+.dashboard-widget-header .widget-title-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--teal);
+  background: var(--teal-2);
+}
+
 .drag-handle {
   color: var(--muted);
   cursor: grab;
+  width: 28px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--teal);
+  background: var(--teal-2);
 }
 
 .widget-actions {
@@ -698,6 +736,53 @@ img {
   display: grid;
   align-content: center;
   gap: 8px;
+}
+
+.metric-card small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cash-flow-widget {
+  min-height: 128px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cash-flow-widget > div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--panel-strong);
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+}
+
+.cash-flow-widget span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.cash-flow-widget strong {
+  font-size: clamp(20px, 2.4vw, 28px);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.cash-flow-widget .is-positive strong {
+  color: var(--green);
+}
+
+.cash-flow-widget .is-negative strong {
+  color: var(--coral);
 }
 
 .user-chip-avatar {
@@ -1348,6 +1433,28 @@ textarea:focus,
   gap: 14px;
 }
 
+.ai-input-mode {
+  margin-bottom: 14px;
+}
+
+.ai-input-mode button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-text-entry {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-text-entry textarea {
+  min-height: 320px;
+  resize: vertical;
+  line-height: 1.7;
+}
+
 .image-stage,
 .library-image-pane {
   min-height: 360px;
@@ -1574,6 +1681,26 @@ pre {
   grid-template-columns: repeat(5, minmax(150px, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.receipt-search-grid--primary {
+  grid-template-columns: minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(170px, 0.9fr);
+}
+
+.receipt-search-grid--advanced {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.receipt-filter-drawer {
+  width: min(640px, 100%);
+}
+
+.drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
 }
 
 .month-button-grid {
@@ -3404,6 +3531,10 @@ code {
   .dashboard-widget--wide,
   .dashboard-widget--large {
     grid-column: span 12;
+  }
+
+  .cash-flow-widget {
+    grid-template-columns: 1fr;
   }
 
   .ai-result-summary,

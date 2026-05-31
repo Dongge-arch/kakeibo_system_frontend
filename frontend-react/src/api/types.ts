@@ -134,10 +134,13 @@ export type AppSettings = {
 // ダッシュボードで表示可能なウィジェットID。
 export type DashboardWidgetId =
   | "clock"
+  | "cashFlow"
   | "expense"
   | "income"
   | "balance"
   | "budget"
+  | "spendingPace"
+  | "largestExpense"
   | "categoryChart"
   | "dailyChart"
   | "recentExpense"

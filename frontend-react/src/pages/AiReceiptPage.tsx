@@ -1,4 +1,4 @@
-import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch } from "lucide-react";
+import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch, TextCursorInput } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api/client";
 import { fileToDataUrl, invoiceDigits, parseNumber, toTaxFlag } from "../api/normalizers";
@@ -16,6 +16,8 @@ type AiReceiptPageProps = {
 export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, notify }: AiReceiptPageProps) {
   const [image, setImage] = useState("");
   const [mimeType, setMimeType] = useState("image/jpeg");
+  const [inputMode, setInputMode] = useState<"image" | "text">("image");
+  const [receiptText, setReceiptText] = useState("");
   const [analysisId, setAnalysisId] = useState("");
   const [receipt, setReceipt] = useState<ReceiptFormType>(emptyReceipt());
   const [analyzing, setAnalyzing] = useState(false);
@@ -28,15 +30,21 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
   }
 
   async function analyze() {
-    if (!image) {
+    const trimmedText = receiptText.trim();
+    if (inputMode === "image" && !image) {
       notify("画像を選択してください。", "error");
+      return;
+    }
+    if (inputMode === "text" && !trimmedText) {
+      notify("レシート本文を入力してください。", "error");
       return;
     }
     setAnalyzing(true);
     try {
       const result = await api.ai.analyze({
-        imageBase64: image,
-        imageMimeType: mimeType,
+        imageBase64: inputMode === "image" ? image : "",
+        imageMimeType: inputMode === "image" ? mimeType : "text/plain",
+        receiptText: inputMode === "text" ? trimmedText : "",
         categories: { category1, category2 }
       });
       const normalized = normalizeAiResult(result);
@@ -79,23 +87,47 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
           </button>
         </div>
 
+        <div className="segmented ai-input-mode">
+          <button type="button" className={inputMode === "image" ? "active" : ""} onClick={() => setInputMode("image")}>
+            <ScanSearch size={17} /> 画像
+          </button>
+          <button type="button" className={inputMode === "text" ? "active" : ""} onClick={() => setInputMode("text")}>
+            <TextCursorInput size={17} /> 文字
+          </button>
+        </div>
+
         <div className="ai-upload-zone">
-          <div className="image-stage">
-            {image ? <img src={image} alt="" /> : <ScanSearch size={52} />}
-          </div>
-          <div className="upload-actions">
-            <label className="command-button command-button--ghost">
-              <Camera size={17} /> 撮影
-              <input type="file" accept="image/*" capture="environment" onChange={event => pickImage(event.target.files?.[0])} />
-            </label>
-            <label className="command-button command-button--ghost">
-              <GalleryHorizontalEnd size={17} /> 写真
-              <input type="file" accept="image/*" onChange={event => pickImage(event.target.files?.[0])} />
-            </label>
-            <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
-              {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
-            </button>
-          </div>
+          {inputMode === "image" ? (
+            <>
+              <div className="image-stage">
+                {image ? <img src={image} alt="" /> : <ScanSearch size={52} />}
+              </div>
+              <div className="upload-actions">
+                <label className="command-button command-button--ghost">
+                  <Camera size={17} /> 撮影
+                  <input type="file" accept="image/*" capture="environment" onChange={event => pickImage(event.target.files?.[0])} />
+                </label>
+                <label className="command-button command-button--ghost">
+                  <GalleryHorizontalEnd size={17} /> 写真
+                  <input type="file" accept="image/*" onChange={event => pickImage(event.target.files?.[0])} />
+                </label>
+                <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
+                  {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="ai-text-entry">
+              <textarea
+                value={receiptText}
+                onChange={event => setReceiptText(event.target.value)}
+                placeholder={"レシート本文を貼り付けてください。\n例：\nLAWSON\n2026/05/27 19:31\n牛乳 198円\nパン 158円\n合計 356円"}
+              />
+              <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
+                {analyzing ? <LoaderCircle className="spin" size={17} /> : <TextCursorInput size={17} />} 文字を解析
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

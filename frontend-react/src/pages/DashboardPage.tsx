@@ -1,11 +1,17 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
+  ArrowUpDown,
+  CalendarClock,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock,
   FileText,
+  Gauge,
   GripVertical,
+  Landmark,
   Maximize2,
   Plus,
   RefreshCw,
@@ -14,8 +20,8 @@ import {
   Trash2,
   WalletCards
 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { PointerEvent, ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { currentMonth, yen } from "../api/normalizers";
 import type {
@@ -42,16 +48,13 @@ type DashboardPageProps = {
   onRefresh: () => void;
 };
 
-const newWidgetIds: DashboardWidgetId[] = ["receiptCount", "incomeCount", "topCategory", "budgetUsage"];
-
 const defaultLayout: DashboardLayoutItem[] = [
   { id: "clock", size: "small" },
-  { id: "expense", size: "small" },
-  { id: "income", size: "small" },
-  { id: "balance", size: "small" },
+  { id: "cashFlow", size: "wide" },
+  { id: "spendingPace", size: "small" },
   { id: "receiptCount", size: "small" },
-  { id: "incomeCount", size: "small" },
   { id: "topCategory", size: "small" },
+  { id: "largestExpense", size: "small" },
   { id: "recentExpense", size: "small" }
 ];
 
@@ -85,10 +88,13 @@ const legacyDefaultOrder: DashboardWidgetId[] = [
 
 const availableLayout: DashboardLayoutItem[] = [
   { id: "clock", size: "small" },
+  { id: "cashFlow", size: "wide" },
   { id: "expense", size: "small" },
   { id: "income", size: "small" },
   { id: "balance", size: "small" },
   { id: "budget", size: "small" },
+  { id: "spendingPace", size: "small" },
+  { id: "largestExpense", size: "small" },
   { id: "receiptCount", size: "small" },
   { id: "incomeCount", size: "small" },
   { id: "budgetUsage", size: "medium" },
@@ -103,10 +109,13 @@ const availableLayout: DashboardLayoutItem[] = [
 
 const widgetMeta = {
   clock: { title: "時計", description: "現在の日時", defaultSize: "small" },
+  cashFlow: { title: "収支サマリー", description: "支出・収入・差額", defaultSize: "wide" },
   expense: { title: "今月の支出", description: "レシート合計", defaultSize: "small" },
   income: { title: "今月の収入", description: "入金合計", defaultSize: "small" },
   balance: { title: "今月の差額", description: "収入 - 支出", defaultSize: "small" },
   budget: { title: "予算残高", description: "週/月の残り予算", defaultSize: "small" },
+  spendingPace: { title: "支出ペース", description: "日割り見込み", defaultSize: "small" },
+  largestExpense: { title: "最大支出", description: "今月いちばん大きい支出", defaultSize: "small" },
   receiptCount: { title: "レシート数", description: "登録済み件数", defaultSize: "small" },
   incomeCount: { title: "入金件数", description: "登録済み入金数", defaultSize: "small" },
   budgetUsage: { title: "予算使用率", description: "予算に対する消化率", defaultSize: "medium" },
@@ -135,6 +144,7 @@ export function DashboardPage({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draggingId, setDraggingId] = useState<DashboardWidgetId | null>(null);
   const [now, setNow] = useState(new Date());
+  const dragOverId = useRef<DashboardWidgetId | null>(null);
 
   useEffect(() => {
     api.dashboard.getLayout()
@@ -165,6 +175,8 @@ export function DashboardPage({
   const recentIncome = incomes.slice(0, 6);
   const dayFlow = useMemo(() => buildDayFlow(receipts, incomes), [receipts, incomes]);
   const maxDayFlow = Math.max(1, ...dayFlow.map(day => Math.max(day.expense, day.income)));
+  const spendingPace = useMemo(() => buildSpendingPace(month, expenseTotal), [month, expenseTotal]);
+  const largestReceipt = useMemo(() => receipts.reduce<ReceiptSummary | null>((best, row) => !best || row.totalPrice > best.totalPrice ? row : best, null), [receipts]);
   const selectedYear = Number(month.slice(0, 4)) || new Date().getFullYear();
   const selectedMonth = Number(month.slice(5, 7)) || new Date().getMonth() + 1;
   const visibleLayout = useMemo(() => layout.filter(item => budgetEnabled || (item.id !== "budget" && item.id !== "budgetUsage")), [layout, budgetEnabled]);
@@ -214,9 +226,38 @@ export function DashboardPage({
     saveLayout(next);
   }
 
+  function beginDrag(id: DashboardWidgetId) {
+    setDraggingId(id);
+    dragOverId.current = id;
+  }
+
+  function endDrag() {
+    setDraggingId(null);
+    dragOverId.current = null;
+  }
+
+  function moveWidgetByPointer(event: PointerEvent, id: DashboardWidgetId) {
+    if (!draggingId || draggingId !== id) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-widget-id]");
+    const targetId = target?.dataset.widgetId as DashboardWidgetId | undefined;
+    if (!targetId || targetId === draggingId || targetId === dragOverId.current) return;
+    dragOverId.current = targetId;
+    moveWidget(targetId);
+  }
+
   function shiftMonth(delta: number) {
     const date = new Date(selectedYear, selectedMonth - 1 + delta, 1);
     onMonthChange(buildMonthValue(date.getFullYear(), date.getMonth() + 1));
+  }
+
+  function moveWidgetByDelta(id: DashboardWidgetId, delta: number) {
+    const index = layout.findIndex(item => item.id === id);
+    const nextIndex = index + delta;
+    if (index < 0 || nextIndex < 0 || nextIndex >= layout.length) return;
+    const next = [...layout];
+    const [moved] = next.splice(index, 1);
+    next.splice(nextIndex, 0, moved);
+    saveLayout(next);
   }
 
   function renderWidget(id: DashboardWidgetId) {
@@ -228,9 +269,18 @@ export function DashboardPage({
         </div>
       );
     }
+    if (id === "cashFlow") {
+      return <CashFlowWidget expense={expenseTotal} income={incomeTotal} balance={balance} />;
+    }
     if (id === "expense") return <MetricCard label="支出" value={yen(expenseTotal)} tone="coral" icon={<ArrowDownRight />} />;
     if (id === "income") return <MetricCard label="収入" value={yen(incomeTotal)} tone="teal" icon={<ArrowUpRight />} />;
     if (id === "balance") return <MetricCard label="差額" value={yen(balance)} tone={balance >= 0 ? "green" : "coral"} icon={<Sparkles />} />;
+    if (id === "spendingPace") {
+      return <MetricCard label="月末見込み" value={yen(spendingPace.estimated)} tone={spendingPace.estimated > expenseTotal ? "gold" : "teal"} icon={<Gauge />} sub={`1日平均 ${yen(spendingPace.dailyAverage)}`} />;
+    }
+    if (id === "largestExpense") {
+      return <MetricCard label={largestReceipt ? receiptDisplayTitle(largestReceipt) : "データなし"} value={yen(largestReceipt?.totalPrice || 0)} tone="gold" icon={<Landmark />} sub={largestReceipt ? largestReceipt.receiptDate : ""} />;
+    }
     if (id === "receiptCount") return <MetricCard label="レシート" value={`${receipts.length.toLocaleString()}件`} tone="gold" icon={<FileText />} />;
     if (id === "incomeCount") return <MetricCard label="入金" value={`${incomes.length.toLocaleString()}件`} tone="teal" icon={<WalletCards />} />;
     if (id === "budget") return <BudgetStatusCard summary={budgetSummary} period={budgetPeriod} />;
@@ -369,20 +419,37 @@ export function DashboardPage({
         {visibleLayout.map(item => (
           <article
             key={item.id}
-            className={`dashboard-widget dashboard-widget--${item.size} ${item.id === "clock" ? "dashboard-widget--clock" : ""}`}
+            data-widget-id={item.id}
+            className={`dashboard-widget dashboard-widget--${item.size} ${item.id === "clock" ? "dashboard-widget--clock" : ""} ${draggingId === item.id ? "is-dragging" : ""}`}
             draggable
-            onDragStart={() => setDraggingId(item.id)}
-            onDragEnd={() => setDraggingId(null)}
+            onDragStart={() => beginDrag(item.id)}
+            onDragEnd={endDrag}
             onDragOver={event => event.preventDefault()}
             onDrop={() => moveWidget(item.id)}
+            onPointerEnter={() => draggingId && moveWidget(item.id)}
+            onPointerMove={event => moveWidgetByPointer(event, item.id)}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
           >
             <header className="dashboard-widget-header">
-              <div className="drag-handle" title="移動"><GripVertical size={18} /></div>
+              <div
+                className="drag-handle"
+                title="移動"
+                onPointerDown={event => {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  beginDrag(item.id);
+                }}
+                onPointerMove={event => moveWidgetByPointer(event, item.id)}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+              ><GripVertical size={18} /></div>
               <div>
-                <h3>{widgetMeta[item.id].title}</h3>
+                <h3><span className="widget-title-icon">{widgetIcon(item.id)}</span>{widgetMeta[item.id].title}</h3>
                 <span>{widgetMeta[item.id].description}</span>
               </div>
               <div className="widget-actions">
+                <button type="button" title="上へ移動" onClick={() => moveWidgetByDelta(item.id, -1)}><ChevronUp size={16} /></button>
+                <button type="button" title="下へ移動" onClick={() => moveWidgetByDelta(item.id, 1)}><ChevronDown size={16} /></button>
                 <button type="button" title="サイズ変更" onClick={() => resizeWidget(item.id)}><Maximize2 size={16} /></button>
                 <button type="button" title="削除" onClick={() => removeWidget(item.id)}><Trash2 size={16} /></button>
               </div>
@@ -397,13 +464,49 @@ export function DashboardPage({
   );
 }
 
-function MetricCard({ label, value, tone, icon }: { label: string; value: string; tone: string; icon: ReactNode }) {
+function MetricCard({ label, value, tone, icon, sub }: { label: string; value: string; tone: string; icon: ReactNode; sub?: string }) {
   return (
     <article className={`metric-card metric-card--${tone}`}>
       <div className="metric-icon">{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
+      {sub && <small>{sub}</small>}
     </article>
+  );
+}
+
+function widgetIcon(id: DashboardWidgetId) {
+  if (id === "clock") return <Clock size={16} />;
+  if (id === "cashFlow") return <ArrowUpDown size={16} />;
+  if (id === "expense") return <ArrowDownRight size={16} />;
+  if (id === "income") return <ArrowUpRight size={16} />;
+  if (id === "balance") return <Sparkles size={16} />;
+  if (id === "budget" || id === "budgetUsage") return <WalletCards size={16} />;
+  if (id === "spendingPace") return <Gauge size={16} />;
+  if (id === "largestExpense") return <Landmark size={16} />;
+  if (id === "receiptCount" || id === "recentExpense") return <FileText size={16} />;
+  if (id === "incomeCount" || id === "recentIncome") return <WalletCards size={16} />;
+  if (id === "topCategory" || id === "categoryChart") return <Sparkles size={16} />;
+  if (id === "dailyChart" || id === "calendar") return <CalendarClock size={16} />;
+  return <Sparkles size={16} />;
+}
+
+function CashFlowWidget({ expense, income, balance }: { expense: number; income: number; balance: number }) {
+  return (
+    <div className="cash-flow-widget">
+      <div>
+        <span><ArrowDownRight size={16} /> 支出</span>
+        <strong>{yen(expense)}</strong>
+      </div>
+      <div>
+        <span><ArrowUpRight size={16} /> 収入</span>
+        <strong>{yen(income)}</strong>
+      </div>
+      <div className={balance >= 0 ? "is-positive" : "is-negative"}>
+        <span><ArrowUpDown size={16} /> 差額</span>
+        <strong>{yen(balance)}</strong>
+      </div>
+    </div>
   );
 }
 
@@ -414,10 +517,9 @@ function normalizeLayout(saved: DashboardLayoutItem[]) {
   const ordered = availableLayout
     .filter(item => byId.has(item.id))
     .map(item => ({ ...item, size: byId.get(item.id)?.size || item.size }));
-  const appendedNew = availableLayout.filter(item => newWidgetIds.includes(item.id) && !byId.has(item.id));
   const knownIds = new Set(availableLayout.map(item => item.id));
   const extra = valid.filter(item => !knownIds.has(item.id));
-  return [...ordered, ...appendedNew, ...extra];
+  return [...ordered, ...extra];
 }
 
 function isDefaultLikeLayout(saved: DashboardLayoutItem[], order: DashboardWidgetId[]) {
@@ -586,6 +688,21 @@ function buildTopCategories(receipts: ReceiptSummary[]): Array<[string, number]>
 
 function buildMonthValue(year: number, monthNumber: number) {
   return `${year}-${String(monthNumber).padStart(2, "0")}`;
+}
+
+function buildSpendingPace(month: string, expenseTotal: number) {
+  const year = Number(month.slice(0, 4)) || new Date().getFullYear();
+  const monthNumber = Number(month.slice(5, 7)) || new Date().getMonth() + 1;
+  const now = new Date();
+  const lastDay = new Date(year, monthNumber, 0).getDate();
+  const elapsed = now.getFullYear() === year && now.getMonth() + 1 === monthNumber
+    ? Math.max(1, now.getDate())
+    : lastDay;
+  const dailyAverage = Math.round(expenseTotal / elapsed);
+  return {
+    dailyAverage,
+    estimated: dailyAverage * lastDay
+  };
 }
 
 function formatBudgetKey(key: string) {

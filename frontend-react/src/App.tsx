@@ -50,6 +50,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const lastSessionUser = useRef<string | null>(auth.session?.userId || null);
+  const recurringCheckRunning = useRef(false);
 
   const title = useMemo(() => {
     const language = settings.language || "ja";
@@ -116,6 +117,22 @@ export default function App() {
     }
   }, [auth.session, month, notify, settings.budgetEnabled]);
 
+  const checkRecurringExpenses = useCallback(async () => {
+    if (!auth.session || recurringCheckRunning.current) return;
+    recurringCheckRunning.current = true;
+    try {
+      const result = await api.recurring.runDue();
+      if (result.createdCount > 0) {
+        notify(`定期出費を${result.createdCount}件登録しました。`, "success");
+        await refreshDashboard();
+      }
+    } catch (error) {
+      notify((error as Error).message, "error");
+    } finally {
+      recurringCheckRunning.current = false;
+    }
+  }, [auth.session, notify, refreshDashboard]);
+
   useEffect(() => {
     if (!auth.session && page !== "settings") {
       setPage("settings");
@@ -135,16 +152,8 @@ export default function App() {
   }, [refreshDashboard]);
 
   useEffect(() => {
-    if (!auth.session) return;
-    api.recurring.runDue()
-      .then(result => {
-        if (result.createdCount > 0) {
-          notify(`定期出費を${result.createdCount}件登録しました。`, "success");
-          refreshDashboard().catch(console.error);
-        }
-      })
-      .catch(error => notify((error as Error).message, "error"));
-  }, [auth.session?.userId]);
+    checkRecurringExpenses().catch(console.error);
+  }, [checkRecurringExpenses, page]);
 
   useEffect(() => {
     if (master.error) notify(master.error, "error");
