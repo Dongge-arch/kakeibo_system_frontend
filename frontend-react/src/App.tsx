@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { api } from "./api/client";
 import { currentMonth, groupReceipts, monthRange } from "./api/normalizers";
 import type { AiUsageSummary, AppSettings, Budget, Income, ReceiptSummary } from "./api/types";
 import { Layout, navItems, type PageKey } from "./components/Layout";
 import { Toast } from "./components/Toast";
+import { detectDevicePage, devicePageLabel, type DevicePage } from "./device";
 import { useAuth } from "./hooks/useAuth";
 import { useMasterData } from "./hooks/useMasterData";
 import { t } from "./i18n";
@@ -40,6 +42,7 @@ const defaultSettings: AppSettings = {
 export default function App() {
   const auth = useAuth();
   const master = useMasterData(auth.session?.userId || "");
+  const [devicePage, setDevicePage] = useState<DevicePage>(() => detectDevicePage());
   const [page, setPage] = useState<PageKey>(() => auth.session ? "dashboard" : "settings");
   const [month, setMonth] = useState(currentMonth());
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
@@ -67,7 +70,11 @@ export default function App() {
   useEffect(() => {
     const query = window.matchMedia("(max-width: 720px), (pointer: coarse)");
     const applyDevice = () => {
-      document.documentElement.dataset.device = query.matches ? "mobile" : "desktop";
+      const nextDevicePage = detectDevicePage();
+      setDevicePage(nextDevicePage);
+      document.documentElement.dataset.devicePage = nextDevicePage;
+      document.documentElement.dataset.browser = nextDevicePage === "mobile-safari" ? "safari" : "standard";
+      document.documentElement.dataset.device = nextDevicePage === "desktop-landscape" ? "desktop" : "mobile";
       document.documentElement.dataset.orientation = window.innerWidth > window.innerHeight ? "landscape" : "portrait";
     };
     applyDevice();
@@ -283,7 +290,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <DevicePageShell devicePage={devicePage}>
       <Layout
         page={auth.session ? page : "settings"}
         title={title}
@@ -301,7 +308,18 @@ export default function App() {
         {renderPage()}
       </Layout>
       {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
-    </>
+    </DevicePageShell>
+  );
+}
+
+function DevicePageShell({ devicePage, children }: { devicePage: DevicePage; children: ReactNode }) {
+  return (
+    <section className={`device-page device-page--${devicePage}`} data-device-page={devicePage}>
+      <div className="device-page-badge" aria-hidden="true">
+        {devicePageLabel(devicePage)}
+      </div>
+      {children}
+    </section>
   );
 }
 

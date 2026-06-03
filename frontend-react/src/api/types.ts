@@ -114,6 +114,8 @@ export type Budget = {
 export type Invoice = {
   invoiceRegistrationNumber: string;
   supplierImage?: string;
+  supplierLogo?: string;
+  img?: string;
   supplierName: string;
   taxFlag: TaxFlag;
 };

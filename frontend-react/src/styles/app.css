@@ -179,6 +179,96 @@ img {
   display: block;
 }
 
+.device-page {
+  min-height: 100vh;
+}
+
+.device-page-badge {
+  position: fixed;
+  right: 14px;
+  bottom: 12px;
+  z-index: 80;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.device-page--desktop-landscape {
+  min-width: 1024px;
+}
+
+.device-page--desktop-landscape .app-shell {
+  grid-template-columns: 276px minmax(960px, 1fr);
+}
+
+.device-page--mobile,
+.device-page--mobile-safari {
+  min-width: 0;
+}
+
+.device-page--mobile .app-shell,
+.device-page--mobile-safari .app-shell {
+  display: block;
+}
+
+.device-page--mobile .side-rail,
+.device-page--mobile-safari .side-rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: min(84vw, 328px);
+  height: 100svh;
+  transform: translateX(-102%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.device-page--mobile .app-shell.is-mobile-menu-open .side-rail,
+.device-page--mobile-safari .app-shell.is-mobile-menu-open .side-rail {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.device-page--mobile .mobile-menu-backdrop,
+.device-page--mobile-safari .mobile-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: block;
+  border: 0;
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.device-page--mobile .mobile-menu-button,
+.device-page--mobile .mobile-menu-close,
+.device-page--mobile-safari .mobile-menu-button,
+.device-page--mobile-safari .mobile-menu-close {
+  display: grid;
+}
+
+.device-page--mobile-safari {
+  min-height: 100svh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.device-page--mobile-safari .workbench {
+  min-height: 100svh;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+
+.device-page--mobile-safari .topbar {
+  padding-top: calc(14px + env(safe-area-inset-top));
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -1474,6 +1564,65 @@ textarea:focus,
   object-fit: contain;
 }
 
+.camera-stage {
+  position: relative;
+  min-height: 360px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #151613;
+  color: #d6d0c7;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.camera-stage video,
+.camera-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72%;
+  height: 64%;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.3);
+  display: grid;
+  place-items: center;
+  color: #f5f2ea;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.camera-stage .scan-overlay span {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(21, 22, 19, 0.9);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.camera-placeholder,
+.camera-error {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
 .ai-output-preview,
 .library-text-pane {
   display: grid;
@@ -1815,7 +1964,7 @@ pre {
   color: var(--text);
   background: transparent;
   display: grid;
-  grid-template-columns: 20px 52px minmax(0, 1fr) minmax(72px, auto);
+  grid-template-columns: 20px 52px minmax(0, 1fr) minmax(64px, auto);
   gap: 10px;
   align-items: center;
   text-align: left;
@@ -1854,7 +2003,9 @@ pre {
 }
 
 .receipt-card-main strong,
+.receipt-card-main span,
 .receipt-card-main small {
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
@@ -1867,6 +2018,12 @@ pre {
 .receipt-card-total {
   text-align: right;
   min-width: 0;
+  justify-items: end;
+}
+
+.receipt-card-total strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .receipt-detail-panel {
@@ -1881,7 +2038,7 @@ pre {
 .receipt-detail-row {
   min-height: 38px;
   display: grid;
-  grid-template-columns: minmax(160px, 1.35fr) minmax(150px, 1fr) minmax(70px, auto) minmax(92px, auto);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px 12px;
   align-items: start;
   color: var(--text);
@@ -1891,6 +2048,7 @@ pre {
 
 .receipt-detail-row strong {
   grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   overflow: visible;
   text-overflow: clip;
@@ -1901,6 +2059,7 @@ pre {
 
 .receipt-detail-row span {
   grid-column: 2;
+  grid-row: 2;
   min-width: 0;
   overflow: visible;
   text-overflow: clip;
@@ -1910,7 +2069,8 @@ pre {
 }
 
 .receipt-detail-row em {
-  grid-column: 3;
+  grid-column: 1;
+  grid-row: 2;
   white-space: nowrap;
 }
 
@@ -1921,8 +2081,8 @@ pre {
 }
 
 .receipt-detail-row b {
-  grid-column: 4;
-  grid-row: auto;
+  grid-column: 2;
+  grid-row: 1;
   align-self: start;
   text-align: right;
   white-space: nowrap;
@@ -1966,6 +2126,8 @@ pre {
   background: var(--panel-strong);
   color: var(--text);
   font-size: 13px;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .pill-list span.is-selected {
@@ -3574,4 +3736,158 @@ code {
   .auth-identity-panel {
     min-height: 220px;
   }
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .app-shell {
+  display: grid;
+  grid-template-columns: 276px minmax(0, 1fr);
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .side-rail {
+  position: sticky;
+  width: auto;
+  height: 100vh;
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .mobile-menu-button,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .mobile-menu-close,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .mobile-menu-backdrop {
+  display: none;
+}
+
+:root[data-device-page="mobile"] .device-page--mobile .topbar,
+:root[data-device-page="mobile-safari"] .device-page--mobile-safari .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+:root[data-device-page="mobile"] .device-page--mobile .workbench,
+:root[data-device-page="mobile-safari"] .device-page--mobile-safari .workbench {
+  width: 100%;
+  max-width: 100vw;
+}
+
+html[data-device-page="desktop-landscape"],
+html[data-device-page="desktop-landscape"] body {
+  overflow-x: auto;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape {
+  min-width: 0;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .workbench {
+  width: 100%;
+  max-width: none;
+  padding-inline: clamp(20px, 2.2vw, 44px);
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .topbar {
+  align-items: flex-start;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .topbar h1,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .dashboard-band h2,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .section-heading h2,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .section-heading h3,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .toolbar-title h2,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .dashboard-widget-header h3,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .user-chip span,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .budget-mini-list span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .dashboard-widget,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-card,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .budget-tile,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .place-card,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .editable-row,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .ai-library-detail,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .library-text-pane {
+  overflow: visible;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .dashboard-widget-grid {
+  grid-template-columns: repeat(12, minmax(84px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .metric-grid,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .token-grid,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .ai-result-summary {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .form-grid--receipt {
+  grid-template-columns: minmax(280px, 1.5fr) repeat(3, minmax(170px, 1fr)) minmax(210px, 0.9fr);
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-search-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-list-grid {
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .budget-grid,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .place-grid {
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-card-expand {
+  grid-template-columns: 24px 58px minmax(0, 1fr) minmax(72px, auto);
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-card-total {
+  min-width: 0;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-table {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-table-head,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-row {
+  width: 100%;
+  min-width: 1180px;
+  grid-template-columns:
+    minmax(220px, 1.45fr)
+    minmax(180px, 1fr)
+    minmax(180px, 1fr)
+    minmax(118px, 0.7fr)
+    minmax(118px, 0.7fr)
+    minmax(118px, 0.7fr)
+    minmax(118px, 0.7fr)
+    46px;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .editable-row {
+  grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1.6fr) minmax(160px, 0.9fr) minmax(130px, 0.7fr) 42px 42px;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .ai-page-grid,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .ai-library-layout,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .settings-layout,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .auth-login-shell {
+  grid-template-columns: minmax(420px, 0.85fr) minmax(0, 1.15fr);
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .ai-library-detail {
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .drawer {
+  width: min(1280px, calc(100vw - 64px));
+  overflow-x: auto;
 }

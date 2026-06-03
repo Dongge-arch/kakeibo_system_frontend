@@ -110,8 +110,26 @@ function authHeaders(): Record<string, string> {
   if (token && token.length <= MAX_AUTH_HEADER_TOKEN_LENGTH) {
     headers.Authorization = `Bearer ${token}`;
   }
+  const userId = session?.userId || userIdFromJwt(token);
+  if (userId) {
+    headers["x-kakeibo-user-id"] = userId;
+  }
   if (APP_API_KEY) headers["x-api-key"] = APP_API_KEY;
   return headers;
+}
+
+function userIdFromJwt(token: string): string {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return "";
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+    const bytes = Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+    const decoded = JSON.parse(new TextDecoder().decode(bytes)) as { sub?: string; userId?: string };
+    return decoded.sub || decoded.userId || "";
+  } catch {
+    return "";
+  }
 }
 
 /**

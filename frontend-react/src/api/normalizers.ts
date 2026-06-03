@@ -172,6 +172,7 @@ export function buildImageSrc(value: string | null | undefined): string {
   if (!image || image === "null" || image === "undefined") return "";
   if (image.startsWith("data:image/")) return image;
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
+  if (image.includes("/") && !/^[A-Za-z0-9+/=\s]+$/.test(image)) return "";
   if (image.startsWith("PHN2Z") || image.startsWith("PD94") || image.startsWith("PD")) {
     return `data:image/svg+xml;base64,${image}`;
   }

@@ -1,5 +1,5 @@
 import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch, TextCursorInput } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { fileToDataUrl, invoiceDigits, parseNumber, toTaxFlag } from "../api/normalizers";
 import type { Category1, Category2, ReceiptForm as ReceiptFormType, ReceiptItem } from "../api/types";
@@ -22,17 +22,77 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
   const [receipt, setReceipt] = useState<ReceiptFormType>(emptyReceipt());
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [captured, setCaptured] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   async function pickImage(file?: File) {
     if (!file) return;
+    stopCamera();
     setMimeType(file.type || "image/jpeg");
     setImage(await fileToDataUrl(file));
+    setCaptured(true);
+  }
+
+  function stopCamera() {
+    const stream = cameraStreamRef.current;
+    if (!stream) return;
+    stream.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    setCameraActive(false);
+  }
+
+  async function startCamera() {
+    if (cameraActive || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return;
+
+    try {
+      setCameraError("");
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      cameraStreamRef.current = stream;
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        await video.play();
+      }
+      setCameraActive(true);
+    } catch (error) {
+      stopCamera();
+      setCameraError("カメラにアクセスできませんでした。権限を確認してください。");
+    }
+  }
+
+  async function captureFrame() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setCameraError("カメラが準備できていません。再読み込みしてください。");
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    const overlayWidthRatio = 0.7;
+    const overlayHeightRatio = 0.65;
+    const cropWidth = Math.floor(video.videoWidth * overlayWidthRatio);
+    const cropHeight = Math.floor(video.videoHeight * overlayHeightRatio);
+    const cropX = Math.floor((video.videoWidth - cropWidth) / 2);
+    const cropY = Math.floor((video.videoHeight - cropHeight) / 2);
+
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    const dataUrl = canvas.toDataURL(mimeType);
+    setImage(dataUrl);
+    setCaptured(true);
+    stopCamera();
   }
 
   async function analyze() {
     const trimmedText = receiptText.trim();
     if (inputMode === "image" && !image) {
-      notify("画像を選択してください。", "error");
+      notify("画像を選択または撮影してください。", "error");
       return;
     }
     if (inputMode === "text" && !trimmedText) {
@@ -74,6 +134,19 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
     }
   }
 
+useEffect(() => {
+    if (inputMode !== "image") {
+      stopCamera();
+      return;
+    }
+
+    if (!image) {
+      startCamera();
+    }
+
+    return () => stopCamera();
+  }, [inputMode, image]);
+
   return (
     <div className="ai-page-grid">
       <section className="panel ai-upload-panel">
@@ -88,10 +161,10 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
         </div>
 
         <div className="segmented ai-input-mode">
-          <button type="button" className={inputMode === "image" ? "active" : ""} onClick={() => setInputMode("image")}>
+          <button type="button" className={inputMode === "image" ? "active" : ""} onClick={() => setInputMode("image")}> 
             <ScanSearch size={17} /> 画像
           </button>
-          <button type="button" className={inputMode === "text" ? "active" : ""} onClick={() => setInputMode("text")}>
+          <button type="button" className={inputMode === "text" ? "active" : ""} onClick={() => setInputMode("text")}> 
             <TextCursorInput size={17} /> 文字
           </button>
         </div>
@@ -99,21 +172,49 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
         <div className="ai-upload-zone">
           {inputMode === "image" ? (
             <>
-              <div className="image-stage">
-                {image ? <img src={image} alt="" /> : <ScanSearch size={52} />}
+              <div className="camera-stage">
+                {image ? (
+                  <img src={image} alt="キャプチャ画像" />
+                ) : (
+                  <>
+                    <video ref={videoRef} playsInline muted />
+                    <div className="scan-overlay">
+                      <span>レシートスキャン枠</span>
+                    </div>
+                    {!cameraActive && !cameraError && <div className="camera-placeholder">カメラを起動中...</div>}
+                    {cameraError && <div className="camera-error">{cameraError}</div>}
+                  </>
+                )}
               </div>
               <div className="upload-actions">
-                <label className="command-button command-button--ghost">
-                  <Camera size={17} /> 撮影
-                  <input type="file" accept="image/*" capture="environment" onChange={event => pickImage(event.target.files?.[0])} />
-                </label>
-                <label className="command-button command-button--ghost">
-                  <GalleryHorizontalEnd size={17} /> 写真
-                  <input type="file" accept="image/*" onChange={event => pickImage(event.target.files?.[0])} />
-                </label>
-                <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
-                  {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
-                </button>
+                {!image ? (
+                  <>
+                    <button type="button" className="command-button command-button--ghost" onClick={captureFrame} disabled={!cameraActive}>
+                      <Camera size={17} /> 撮影
+                    </button>
+                    <label className="command-button command-button--ghost">
+                      <GalleryHorizontalEnd size={17} /> 写真
+                      <input type="file" accept="image/*" onChange={event => pickImage(event.target.files?.[0])} />
+                    </label>
+                    <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing || !image}>
+                      {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className="command-button command-button--ghost" onClick={() => {
+                      setImage("");
+                      setCaptured(false);
+                      setCameraError("");
+                      setTimeout(startCamera, 50);
+                    }}>
+                      <Camera size={17} /> 再撮影
+                    </button>
+                    <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
+                      {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
+                    </button>
+                  </>
+                )}
               </div>
             </>
           ) : (

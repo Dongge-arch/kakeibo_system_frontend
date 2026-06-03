@@ -81,7 +81,7 @@ export function PlacesPage({ notify }: PlacesPageProps) {
         {loading && rows.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
         {!loading && rows.length === 0 && <div className="empty-state">データなし</div>}
         {rows.map(row => {
-          const logoSrc = buildImageSrc(row.supplierImage);
+          const logoSrc = buildImageSrc(row.supplierImage || row.supplierLogo || row.img);
           const isTaxIncluded = String(row.taxFlag) === "1";
           return (
           <article className="place-card place-card--summary" key={row.invoiceRegistrationNumber}>
@@ -119,7 +119,7 @@ export function PlacesPage({ notify }: PlacesPageProps) {
 
             <div className="place-edit-layout">
               <div className="place-logo place-logo--large">
-                {buildImageSrc(editing.supplierImage) ? <img src={buildImageSrc(editing.supplierImage)} alt="" /> : <span>LOGO</span>}
+                {buildImageSrc(editing.supplierImage || editing.supplierLogo || editing.img) ? <img src={buildImageSrc(editing.supplierImage || editing.supplierLogo || editing.img)} alt="" /> : <span>LOGO</span>}
               </div>
               <label className="file-button">
                 <Upload size={17} /> LOGO
