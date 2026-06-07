@@ -2905,6 +2905,75 @@ pre {
   background: var(--panel);
 }
 
+.setting-description {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.auto-linkage-list,
+.auto-linkage-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auto-linkage-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  color: var(--text);
+  background: var(--panel-strong);
+  text-align: left;
+}
+
+.auto-linkage-row small,
+.auto-linkage-row strong {
+  display: block;
+}
+
+.auto-linkage-row small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.auto-linkage-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  color: var(--teal);
+  background: var(--teal-2);
+}
+
+.auto-linkage-detail-label,
+.auto-linkage-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.auto-linkage-actions {
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.status-badge.is-enabled {
+  color: var(--green);
+  background: var(--green-2);
+}
+
 .autosave-badge {
   min-height: 34px;
   display: inline-flex;

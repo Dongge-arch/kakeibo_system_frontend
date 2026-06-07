@@ -1,5 +1,6 @@
 import {
   Bot,
+  Cable,
   ChevronRight,
   CircleDollarSign,
   Cloud,
@@ -36,6 +37,7 @@ export type PageKey =
   | "budget"
   | "places"
   | "categories"
+  | "auto-linkage"
   | "settings";
 
 export type NavItem = {
@@ -65,6 +67,7 @@ const planItems: NavItem[] = [
 ];
 
 const manageItems: NavItem[] = [
+  { key: "auto-linkage", label: () => "出費自動連携", icon: Cable },
   { key: "places", label: language => t(language, "places"), icon: MapPinned },
   { key: "categories", label: language => t(language, "categories"), icon: Tags },
   { key: "settings", label: language => t(language, "settings"), icon: Settings }
@@ -91,13 +94,14 @@ type LayoutProps = {
   title: string;
   session: AuthSession | null;
   budgetEnabled: boolean;
+  autoLinkageEnabled: boolean;
   language: Language;
   onNavigate: (page: PageKey) => void;
   onLogout: () => void;
   children: ReactNode;
 };
 
-export function Layout({ page, title, session, budgetEnabled, language, onNavigate, onLogout, children }: LayoutProps) {
+export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled, language, onNavigate, onLogout, children }: LayoutProps) {
   const loggedIn = !!session;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -169,7 +173,10 @@ export function Layout({ page, title, session, budgetEnabled, language, onNaviga
 
         <nav className="nav-stack">
           {navGroups.map(group => {
-            const items = group.items.filter(item => budgetEnabled || item.key !== "budget");
+            const items = group.items.filter(item =>
+              (budgetEnabled || item.key !== "budget") &&
+              (autoLinkageEnabled || item.key !== "auto-linkage")
+            );
             if (!items.length) return null;
             return (
               <div className="nav-group" key={group.label(language)}>

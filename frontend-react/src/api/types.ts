@@ -123,6 +123,7 @@ export type Invoice = {
 // アプリ全体の表示設定と予算機能設定。
 export type AppSettings = {
   budgetEnabled: boolean;
+  autoLinkageEnabled: boolean;
   budgetPeriod: "week" | "month";
   darkMode: boolean;
   autoDark: boolean;
@@ -131,6 +132,19 @@ export type AppSettings = {
   largeTextMode: boolean;
   colorTheme: "kakeibo" | "teal" | "indigo" | "green" | "orange" | "pink" | "sakura" | "sky" | "mono";
   language?: "ja" | "zh" | "en";
+};
+
+export type AutoLinkagePlace = {
+  connectionType: "BELC" | "SUICA";
+  supplierName: string;
+  invoiceRegistrationNumber: string;
+  configured: boolean;
+  enabled: boolean;
+  accountId?: string;
+  passwordRegistered?: boolean;
+  lastLoginStatus?: string;
+  lastLoginDate?: string;
+  lastLoginTime?: string;
 };
 
 // ダッシュボードで表示可能なウィジェットID。

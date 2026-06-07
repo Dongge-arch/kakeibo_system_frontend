@@ -283,6 +283,16 @@ export function SettingsPage({
             </div>
           )}
         </div>
+        <div className={`setting-card setting-card--budget ${draft.autoLinkageEnabled ? "" : "is-muted"}`}>
+          <Toggle
+            label="出費自動連携機能を使用する"
+            value={draft.autoLinkageEnabled}
+            onChange={value => patch({ autoLinkageEnabled: value })}
+          />
+          <span className="setting-description">
+            有効にすると、機能メニューから対応サービスの会員アカウントを設定できます。
+          </span>
+        </div>
         <Toggle label={t(draft.language || "ja", "darkMode")} value={draft.darkMode} onChange={value => patch({ darkMode: value })} />
         <Toggle label={t(draft.language || "ja", "autoDark")} value={draft.autoDark} onChange={value => patch({ autoDark: value })} />
         <Toggle label={t(draft.language || "ja", "largeText")} value={draft.largeTextMode} onChange={value => patch({ largeTextMode: value })} />

@@ -20,6 +20,7 @@ import { ReceiptPage } from "./pages/ReceiptPage";
 import { RecurringExpensePage } from "./pages/RecurringExpensePage";
 import { ReceiptsPage } from "./pages/ReceiptsPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { AutoLinkagePage } from "./pages/AutoLinkagePage";
 import "./styles/app.css";
 
 type ToastState = {
@@ -29,6 +30,7 @@ type ToastState = {
 
 const defaultSettings: AppSettings = {
   budgetEnabled: false,
+  autoLinkageEnabled: false,
   budgetPeriod: "month",
   darkMode: false,
   autoDark: false,
@@ -173,6 +175,12 @@ export default function App() {
   }, [page, settings.budgetEnabled]);
 
   useEffect(() => {
+    if (page === "auto-linkage" && !settings.autoLinkageEnabled) {
+      setPage("dashboard");
+    }
+  }, [page, settings.autoLinkageEnabled]);
+
+  useEffect(() => {
     if (!auth.session) {
       setSettings(defaultSettings);
       applySettings(defaultSettings);
@@ -274,6 +282,7 @@ export default function App() {
         />
       );
     }
+    if (page === "auto-linkage") return <AutoLinkagePage notify={notify} />;
     return (
       <SettingsPage
         session={auth.session}
@@ -296,6 +305,7 @@ export default function App() {
         title={title}
         session={auth.session}
         budgetEnabled={settings.budgetEnabled}
+        autoLinkageEnabled={settings.autoLinkageEnabled}
         language={settings.language || "ja"}
         onNavigate={setPage}
         onLogout={auth.logout}

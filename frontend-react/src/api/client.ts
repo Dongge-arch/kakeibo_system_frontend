@@ -3,6 +3,7 @@
   AiReceiptHistoryDetail,
   AiUsageSummary,
   AppSettings,
+  AutoLinkagePlace,
   AuthSession,
   Budget,
   Category1,
@@ -341,6 +342,21 @@ export const api = {
   settings: {
     get: () => get<AppSettings | null>("/app/settings"),
     save: (settings: AppSettings) => post<{ ok: boolean }>("/app/settings", settings)
+  },
+  autoLinkage: {
+    list: () => get<AutoLinkagePlace[]>("/auto-linkages"),
+    get: (connectionType: AutoLinkagePlace["connectionType"]) =>
+      get<AutoLinkagePlace>(`/auto-linkages/${connectionType}`),
+    update: (
+      connectionType: AutoLinkagePlace["connectionType"],
+      payload: { accountId: string; password?: string; enabled: boolean }
+    ) => put<{ ok: boolean; message?: string }>(`/auto-linkages/${connectionType}`, payload),
+    login: (
+      connectionType: AutoLinkagePlace["connectionType"],
+      payload: { accountId: string; password?: string }
+    ) => post<{ ok: boolean; status: string; message?: string }>(`/auto-linkages/${connectionType}/login`, payload),
+    remove: (connectionType: AutoLinkagePlace["connectionType"]) =>
+      remove<{ ok: boolean; message?: string }>(`/auto-linkages/${connectionType}`)
   },
   dashboard: {
     getLayout: () => get<DashboardLayoutItem[] | null>("/dashboard/layout"),
