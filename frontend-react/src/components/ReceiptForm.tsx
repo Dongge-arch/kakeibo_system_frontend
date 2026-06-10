@@ -10,7 +10,6 @@ import {
   normalizeInvoice,
   nowTime,
   parseNumber,
-  recalcItems,
   today,
   yen
 } from "../api/normalizers";
@@ -26,6 +25,16 @@ const blankItem: ReceiptItem = {
   discount: 0,
   totalPrice: 0
 };
+
+const priceAffectingKeys = new Set<keyof ReceiptItem>([
+  "quantity",
+  "unitPrice",
+  "discount",
+  "taxRate",
+  "category1",
+  "category2",
+  "totalPrice"
+]);
 
 export function emptyReceipt(): ReceiptFormType {
   return {
@@ -69,10 +78,12 @@ export function ReceiptForm({
     setInvoiceInput(invoiceDigits(next.invoiceRegistrationNumber));
   }, [initial, category2]);
 
-  const total = useMemo(
+  const detailTotal = useMemo(
     () => form.receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0),
     [form.receiptDetails]
   );
+  const receiptTotal = parseNumber(form.totalPrice) || detailTotal;
+  const totalDifference = receiptTotal - detailTotal;
   const logoSrc = buildImageSrc(form.supplierImage);
 
   function patch(next: Partial<ReceiptFormType>) {
@@ -80,20 +91,48 @@ export function ReceiptForm({
   }
 
   function updateTaxFlag(taxFlag: TaxFlag) {
-    setForm(current => ({ ...current, taxFlag }));
+    if (taxFlag === form.taxFlag) return;
+    if (!window.confirm("税区分を変更すると、すべての明細金額を再計算します。変更しますか。")) return;
+    setForm(current => {
+      const receiptDetails = current.receiptDetails.map(item =>
+        withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2)
+      );
+      return {
+        ...current,
+        taxFlag,
+        receiptDetails
+      };
+    });
   }
 
   function updateItem(index: number, patchItem: Partial<ReceiptItem>) {
     setForm(current => {
+      const affectsPrice = Object.keys(patchItem).some(key => priceAffectingKeys.has(key as keyof ReceiptItem));
       const receiptDetails = current.receiptDetails.map((item, i) => {
         if (i !== index) return item;
         const next = normalizeReceiptItem({ ...item, ...patchItem });
-        return { ...next, totalPrice: calcItemTotal(next, current.taxFlag, category2) };
+        return affectsPrice ? withTaxBreakdown(next, current.taxFlag, category2) : next;
+      });
+      const nextDetailTotal = receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0);
+      return {
+        ...current,
+        receiptDetails,
+        totalPrice: parseNumber(current.totalPrice) || nextDetailTotal
+      };
+    });
+  }
+
+  function updateItemTotal(index: number, value: number) {
+    setForm(current => {
+      const receiptDetails = current.receiptDetails.map((item, i) => {
+        if (i !== index) return item;
+        return withManualTotal(normalizeReceiptItem(item), value, current.taxFlag, category2);
       });
       return {
         ...current,
         receiptDetails,
-        totalPrice: receiptDetails.reduce((sum, item) => sum + item.totalPrice, 0)
+        totalPrice: parseNumber(current.totalPrice)
+          || receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
       };
     });
   }
@@ -129,14 +168,23 @@ export function ReceiptForm({
       const found = rows?.[0];
       if (found) {
         const taxFlag = String(found.taxFlag) === "1" ? "1" : "0";
-        const receiptDetails = recalcItems(form.receiptDetails, taxFlag, category2);
+        const changesTaxFlag = taxFlag !== form.taxFlag;
+        const confirmMessage = changesTaxFlag
+          ? `${found.supplierName || "店舗情報"}を見つけました。店舗名と税区分を反映し、明細金額を再計算しますか。`
+          : `${found.supplierName || "店舗情報"}を見つけました。店舗名と店舗ロゴを反映しますか。`;
+        if (!window.confirm(confirmMessage)) {
+          patch({ invoiceRegistrationNumber: invoiceNo });
+          return;
+        }
+        const receiptDetails = changesTaxFlag
+          ? form.receiptDetails.map(item => withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2))
+          : form.receiptDetails;
         patch({
           invoiceRegistrationNumber: invoiceNo,
           supplierName: found.supplierName || form.supplierName,
           supplierImage: found.supplierLogo || form.supplierImage,
           taxFlag,
-          receiptDetails,
-          totalPrice: receiptDetails.reduce((sum, item) => sum + item.totalPrice, 0)
+          receiptDetails
         });
       } else {
         patch({ invoiceRegistrationNumber: invoiceNo });
@@ -163,10 +211,9 @@ export function ReceiptForm({
         .filter(item => item.itemName || item.unitPrice || item.totalPrice)
         .map(item => {
           const normalized = normalizeReceiptItem(item);
-          return {
-            ...normalized,
-            totalPrice: parseNumber(normalized.totalPrice) || calcItemTotal(normalized, form.taxFlag, category2)
-          };
+          return hasTaxBreakdown(normalized)
+            ? normalized
+            : withTaxBreakdown(normalized, form.taxFlag, category2);
         });
 
       if (!form.receiptDate || !form.receiptTime || receiptDetails.length === 0) {
@@ -177,7 +224,8 @@ export function ReceiptForm({
         ...form,
         invoiceRegistrationNumber,
         receiptDetails,
-        totalPrice: receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
+        totalPrice: parseNumber(form.totalPrice)
+          || receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
       });
     } catch (error) {
       alert((error as Error).message);
@@ -193,8 +241,19 @@ export function ReceiptForm({
             <h2>支出登録</h2>
           </div>
           <div className="total-pill">
-            <span>合計</span>
-            <strong>{yen(total)}</strong>
+            <label htmlFor="receipt-total">レシート合計</label>
+            <div className="receipt-total-input">
+              <span>¥</span>
+              <input
+                id="receipt-total"
+                type="number"
+                min="0"
+                value={numberFieldValue(form.totalPrice)}
+                onChange={event => patch({ totalPrice: numberFieldParse(event.target.value) })}
+              />
+            </div>
+            <small>明細合計 {yen(detailTotal)}</small>
+            {totalDifference !== 0 && <small>差額 {yen(totalDifference)}</small>}
           </div>
         </div>
 
@@ -230,13 +289,18 @@ export function ReceiptForm({
             <input type="time" value={form.receiptTime} onChange={event => patch({ receiptTime: event.target.value })} />
           </label>
           <fieldset className="segmented">
-            <legend>税区分</legend>
+            <legend>単価の税区分</legend>
             <button type="button" className={form.taxFlag === "1" ? "is-active" : ""} onClick={() => updateTaxFlag("1")}>
-              税込
+              単価は税込
             </button>
             <button type="button" className={form.taxFlag === "0" ? "is-active" : ""} onClick={() => updateTaxFlag("0")}>
-              税抜
+              単価は税抜
             </button>
+            <small className="tax-mode-help">
+              {form.taxFlag === "0"
+                ? "入力した単価を税抜価格として、税込金額を計算します。"
+                : "入力した単価を税込価格として扱います。"}
+            </small>
           </fieldset>
         </div>
 
@@ -245,7 +309,7 @@ export function ReceiptForm({
             {logoSrc ? <img src={logoSrc} alt="" /> : <span>LOGO</span>}
           </div>
           <label className="file-button">
-            画像
+            店舗ロゴ画像
             <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => onLogoFile(event.target.files?.[0])} />
           </label>
         </div>
@@ -265,9 +329,9 @@ export function ReceiptForm({
             <span>分類</span>
             <span>小分類</span>
             <span>数量</span>
-            <span>単価</span>
+            <span>{form.taxFlag === "0" ? "税抜単価" : "税込単価"}</span>
             <span>割引</span>
-            <span>金額</span>
+            <span>税込金額</span>
             <span></span>
           </div>
           {form.receiptDetails.map((item, index) => (
@@ -292,14 +356,20 @@ export function ReceiptForm({
               <label className="line-field" data-label="数量">
                 <input type="number" value={numberFieldValue(item.quantity, false)} onChange={event => updateItem(index, { quantity: numberFieldParse(event.target.value) || 0 })} />
               </label>
-              <label className="line-field" data-label="単価">
+              <label className="line-field" data-label={form.taxFlag === "0" ? "税抜単価" : "税込単価"}>
                 <input type="number" value={numberFieldValue(item.unitPrice)} onChange={event => updateItem(index, { unitPrice: numberFieldParse(event.target.value) })} />
               </label>
               <label className="line-field" data-label="割引">
                 <input type="number" value={numberFieldValue(item.discount)} onChange={event => updateItem(index, { discount: numberFieldParse(event.target.value) })} />
               </label>
-              <label className="line-field line-field--output" data-label="金額">
-                <output>{yen(item.totalPrice)}</output>
+              <label className="line-field line-field--total" data-label="税込金額">
+                <input
+                  type="number"
+                  min="0"
+                  value={numberFieldValue(item.totalPrice)}
+                  onChange={event => updateItemTotal(index, numberFieldParse(event.target.value))}
+                />
+                <small>直接修正可</small>
               </label>
               <div className="line-field line-field--action">
                 <IconButton label="削除" icon={Trash2} variant="danger" onClick={() => removeRow(index)} />
@@ -307,12 +377,16 @@ export function ReceiptForm({
             </div>
           ))}
         </div>
+        <p className="receipt-detail-note">
+          商品名または金額を入力した明細が保存されます。明細合計とレシート合計が一致しない場合でも保存できます。
+        </p>
       </section>
 
       <div className="sticky-submit">
         <div>
           <span>保存額</span>
-          <strong>{yen(total)}</strong>
+          <strong>{yen(receiptTotal)}</strong>
+          {totalDifference !== 0 && <small>明細合計 {yen(detailTotal)} / 差額 {yen(totalDifference)}</small>}
         </div>
         <button type="submit" className="command-button command-button--primary" disabled={busy}>
           <Save size={18} /> {busy ? "保存中" : submitLabel}
@@ -330,11 +404,88 @@ function normalizeReceiptForForm(receipt: ReceiptFormType, category2: Category2[
       totalPrice: normalized.totalPrice || calcItemTotal(normalized, receipt.taxFlag, category2)
     };
   });
+  const detailTotal = receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0);
   return {
     ...receipt,
     receiptDetails,
-    totalPrice: receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
+    totalPrice: parseNumber(receipt.totalPrice) || detailTotal
   };
+}
+
+function taxRateForItem(item: ReceiptItem, category2: Category2[]): number {
+  const found = category2.find(row =>
+    row.category1Name === item.category1 && row.category2Name === item.category2
+  );
+  return parseNumber(found?.taxRate ?? item.taxRate ?? 0.1);
+}
+
+function withTaxBreakdown(item: ReceiptItem, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
+  const taxRate = taxRateForItem(item, category2);
+  const taxMultiplier = 1 + taxRate;
+  const quantity = parseNumber(item.quantity) || 1;
+  const unitPrice = parseNumber(item.unitPrice);
+  const discount = parseNumber(item.discount);
+  const baseTotal = Math.max(0, quantity * unitPrice - discount);
+
+  if (taxFlag === "0") {
+    const taxIncludedUnitPrice = Math.round(unitPrice * taxMultiplier);
+    const taxIncludedTotalPrice = Math.round(baseTotal * taxMultiplier);
+    return {
+      ...item,
+      taxRate,
+      totalPrice: taxIncludedTotalPrice,
+      taxExcludedUnitPrice: unitPrice,
+      taxExcludedTotalPrice: baseTotal,
+      taxIncludedUnitPrice,
+      taxIncludedTotalPrice
+    };
+  }
+
+  return {
+    ...item,
+    taxRate,
+    totalPrice: baseTotal,
+    taxExcludedUnitPrice: taxMultiplier ? Math.round(unitPrice / taxMultiplier) : unitPrice,
+    taxExcludedTotalPrice: taxMultiplier ? Math.round(baseTotal / taxMultiplier) : baseTotal,
+    taxIncludedUnitPrice: unitPrice,
+    taxIncludedTotalPrice: baseTotal
+  };
+}
+
+function withManualTotal(item: ReceiptItem, totalPrice: number, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
+  const taxRate = taxRateForItem(item, category2);
+  const taxMultiplier = 1 + taxRate;
+  const normalizedTotal = Math.max(0, parseNumber(totalPrice));
+  if (taxFlag === "0") {
+    const taxExcludedTotalPrice = taxMultiplier ? Math.round(normalizedTotal / taxMultiplier) : normalizedTotal;
+    return {
+      ...item,
+      taxRate,
+      totalPrice: normalizedTotal,
+      taxExcludedUnitPrice: parseNumber(item.unitPrice),
+      taxExcludedTotalPrice,
+      taxIncludedUnitPrice: Math.round(parseNumber(item.unitPrice) * taxMultiplier),
+      taxIncludedTotalPrice: normalizedTotal
+    };
+  }
+  return {
+    ...item,
+    taxRate,
+    totalPrice: normalizedTotal,
+    taxExcludedUnitPrice: taxMultiplier ? Math.round(parseNumber(item.unitPrice) / taxMultiplier) : parseNumber(item.unitPrice),
+    taxExcludedTotalPrice: taxMultiplier ? Math.round(normalizedTotal / taxMultiplier) : normalizedTotal,
+    taxIncludedUnitPrice: parseNumber(item.unitPrice),
+    taxIncludedTotalPrice: normalizedTotal
+  };
+}
+
+function hasTaxBreakdown(item: ReceiptItem): boolean {
+  return [
+    item.taxExcludedUnitPrice,
+    item.taxExcludedTotalPrice,
+    item.taxIncludedUnitPrice,
+    item.taxIncludedTotalPrice
+  ].every(value => value !== undefined && value !== null);
 }
 
 function normalizeReceiptItem(item: ReceiptItem): ReceiptItem {
@@ -343,7 +494,12 @@ function normalizeReceiptItem(item: ReceiptItem): ReceiptItem {
     quantity: parseNumber(item.quantity) || 1,
     unitPrice: parseNumber(item.unitPrice),
     discount: parseNumber(item.discount),
-    totalPrice: parseNumber(item.totalPrice)
+    taxRate: item.taxRate === undefined ? undefined : parseNumber(item.taxRate),
+    totalPrice: parseNumber(item.totalPrice),
+    taxExcludedUnitPrice: item.taxExcludedUnitPrice === undefined ? undefined : parseNumber(item.taxExcludedUnitPrice),
+    taxExcludedTotalPrice: item.taxExcludedTotalPrice === undefined ? undefined : parseNumber(item.taxExcludedTotalPrice),
+    taxIncludedUnitPrice: item.taxIncludedUnitPrice === undefined ? undefined : parseNumber(item.taxIncludedUnitPrice),
+    taxIncludedTotalPrice: item.taxIncludedTotalPrice === undefined ? undefined : parseNumber(item.taxIncludedTotalPrice)
   };
 }
 

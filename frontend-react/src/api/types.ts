@@ -29,6 +29,10 @@ export type ReceiptItem = {
   discount?: number;
   taxRate?: number;
   totalPrice: number;
+  taxExcludedUnitPrice?: number;
+  taxExcludedTotalPrice?: number;
+  taxIncludedUnitPrice?: number;
+  taxIncludedTotalPrice?: number;
 };
 
 // レシート登録/更新フォーム全体。
@@ -61,7 +65,14 @@ export type ReceiptFlatRow = {
   category2: string;
   quantity: number;
   unitPrice: number;
+  unit?: string;
+  discount?: number;
+  taxRate?: number;
   totalPrice: number;
+  taxExcludedUnitPrice?: number;
+  taxExcludedTotalPrice?: number;
+  taxIncludedUnitPrice?: number;
+  taxIncludedTotalPrice?: number;
 };
 
 // レシート検索APIへ送る条件。
@@ -145,6 +156,20 @@ export type AutoLinkagePlace = {
   lastLoginStatus?: string;
   lastLoginDate?: string;
   lastLoginTime?: string;
+};
+
+export type AutoLinkageRunResult = {
+  ok: boolean;
+  status: string;
+  message?: string;
+  challengeId?: string;
+  captchaImage?: string;
+  expiresInSeconds?: number;
+  fetchedCount?: number;
+  insertedCount?: number;
+  duplicateCount?: number;
+  registeredCount?: number;
+  skipped?: boolean;
 };
 
 // ダッシュボードで表示可能なウィジェットID。

@@ -4,6 +4,7 @@
   AiUsageSummary,
   AppSettings,
   AutoLinkagePlace,
+  AutoLinkageRunResult,
   AuthSession,
   Budget,
   Category1,
@@ -355,6 +356,10 @@ export const api = {
       connectionType: AutoLinkagePlace["connectionType"],
       payload: { accountId: string; password?: string }
     ) => post<{ ok: boolean; status: string; message?: string }>(`/auto-linkages/${connectionType}/login`, payload),
+    run: (
+      connectionType: AutoLinkagePlace["connectionType"],
+      payload: { runAction?: "start" | "submit"; challengeId?: string; captcha?: string } = {}
+    ) => post<AutoLinkageRunResult>(`/auto-linkages/${connectionType}/run`, payload),
     remove: (connectionType: AutoLinkagePlace["connectionType"]) =>
       remove<{ ok: boolean; message?: string }>(`/auto-linkages/${connectionType}`)
   },

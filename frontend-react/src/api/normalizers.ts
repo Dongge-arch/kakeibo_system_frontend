@@ -264,11 +264,23 @@ export function groupReceipts(rows: ReceiptFlatRow[]): ReceiptSummary[] {
       category2: row.category2 || "",
       quantity: parseNumber(row.quantity) || 1,
       unitPrice: parseNumber(row.unitPrice),
-      totalPrice: itemTotal
+      unit: row.unit,
+      discount: parseOptionalNumber(row.discount),
+      taxRate: parseOptionalNumber(row.taxRate),
+      totalPrice: itemTotal,
+      taxExcludedUnitPrice: parseOptionalNumber(row.taxExcludedUnitPrice),
+      taxExcludedTotalPrice: parseOptionalNumber(row.taxExcludedTotalPrice),
+      taxIncludedUnitPrice: parseOptionalNumber(row.taxIncludedUnitPrice),
+      taxIncludedTotalPrice: parseOptionalNumber(row.taxIncludedTotalPrice)
     });
     map.set(key, current);
   });
   return Array.from(map.values());
+}
+
+function parseOptionalNumber(value: unknown): number | undefined {
+  // 未設定の税内訳を0へ変換せず、そのまま後続処理へ引き渡す。
+  return value === undefined || value === null || value === "" ? undefined : parseNumber(value);
 }
 
 function receiptRowImage(row: ReceiptFlatRow): string {

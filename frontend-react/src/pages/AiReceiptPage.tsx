@@ -189,6 +189,7 @@ useEffect(() => {
               <div className="upload-actions">
                 {!image ? (
                   <>
+                    <p className="ai-upload-guidance">レシートを撮影するか、写真から選択してください。</p>
                     <button type="button" className="command-button command-button--ghost" onClick={captureFrame} disabled={!cameraActive}>
                       <Camera size={17} /> 撮影
                     </button>
@@ -196,9 +197,6 @@ useEffect(() => {
                       <GalleryHorizontalEnd size={17} /> 写真
                       <input type="file" accept="image/*" onChange={event => pickImage(event.target.files?.[0])} />
                     </label>
-                    <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing || !image}>
-                      {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
-                    </button>
                   </>
                 ) : (
                   <>
@@ -242,6 +240,11 @@ useEffect(() => {
         compact
         onSubmit={save}
       />
+      {analysisId && receipt.totalPrice !== receipt.receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0) && (
+        <div className="ai-review-notice">
+          合計と明細合計に差額があります。登録前に内容を確認してください。
+        </div>
+      )}
     </div>
   );
 }
@@ -256,14 +259,20 @@ function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptForm
         itemName: String(item.itemName || item.name || ""),
         category1: String(item.category1 || item.category || ""),
         category2: String(item.category2 || item.subCategory || ""),
+        taxRate: parseNumber(item.taxRate ?? item.tax_rate) || 0.1,
         quantity: parseNumber(item.quantity) || 1,
         unitPrice: parseNumber(item.unitPrice ?? item.price ?? item.amount ?? total),
         discount: parseNumber(item.discount),
-        totalPrice: total
+        totalPrice: total,
+        taxExcludedUnitPrice: parseOptionalNumber(item.taxExcludedUnitPrice),
+        taxExcludedTotalPrice: parseOptionalNumber(item.taxExcludedTotalPrice),
+        taxIncludedUnitPrice: parseOptionalNumber(item.taxIncludedUnitPrice),
+        taxIncludedTotalPrice: parseOptionalNumber(item.taxIncludedTotalPrice)
       } satisfies ReceiptItem;
     });
 
   const receiptDetails = details.length ? details : emptyReceipt().receiptDetails;
+  const receiptTotal = parseNumber(data.totalPrice ?? data.total ?? data.amount);
   return {
     receipt: {
       invoiceRegistrationNumber: invoiceDigits(String(data.invoiceRegistrationNumber || data.invoiceNo || "")),
@@ -271,8 +280,12 @@ function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptForm
       receiptDate: String(data.receiptDate || data.date || ""),
       receiptTime: String(data.receiptTime || data.time || ""),
       taxFlag: toTaxFlag(data.taxFlag ?? data.taxIncluded),
-      totalPrice: receiptDetails.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
+      totalPrice: receiptTotal || receiptDetails.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
       receiptDetails
     }
   };
+}
+
+function parseOptionalNumber(value: unknown): number | undefined {
+  return value === undefined || value === null || value === "" ? undefined : parseNumber(value);
 }
