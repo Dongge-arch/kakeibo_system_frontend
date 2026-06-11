@@ -12,6 +12,12 @@ type CategoriesPageProps = {
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
+type DeleteTarget = {
+  label: string;
+  kind: "分類" | "小分類" | "入金分類";
+  action: () => Promise<unknown>;
+};
+
 const defaultCategory1 = ["食費", "日用品", "交通", "住居", "水道光熱", "通信", "医療", "美容", "衣服", "娯楽", "交際", "教育", "ペット", "税金・保険", "その他"];
 
 const defaultCategory2 = [
@@ -95,6 +101,7 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
   const [taxRate, setTaxRate] = useState(0.1);
   const [newSalary, setNewSalary] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const visibleCategory2 = useMemo(() => {
     return category2.filter(item => item.category1Name === selectedCategory1);
@@ -180,6 +187,20 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
     );
   }
 
+  function confirmDelete(target: DeleteTarget) {
+    setDeleteTarget(target);
+  }
+
+  function executeDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    run(
+      target.action,
+      `${target.kind}を削除しました。`,
+      () => setDeleteTarget(null)
+    );
+  }
+
   return (
     <div className="category-layout">
       <section className="panel category-default-panel">
@@ -221,7 +242,11 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
                 label="削除"
                 icon={Trash2}
                 variant="danger"
-                onClick={() => run(() => api.master.deleteCategory1(item.category1Name), "削除しました。")}
+                onClick={() => confirmDelete({
+                  label: item.category1Name,
+                  kind: "分類",
+                  action: () => api.master.deleteCategory1(item.category1Name)
+                })}
               />
             </span>
           ))}
@@ -260,7 +285,11 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
                 label="削除"
                 icon={Trash2}
                 variant="danger"
-                onClick={() => run(() => api.master.deleteCategory2(item.category1Name, item.category2Name), "削除しました。")}
+                onClick={() => confirmDelete({
+                  label: `${item.category1Name} / ${item.category2Name}`,
+                  kind: "小分類",
+                  action: () => api.master.deleteCategory2(item.category1Name, item.category2Name)
+                })}
               />
             </div>
           ))}
@@ -288,12 +317,38 @@ export function CategoriesPage({ category1, category2, salaryCategories, refresh
                 label="削除"
                 icon={Trash2}
                 variant="danger"
-                onClick={() => run(() => api.master.deleteSalaryCategory(item.salaryCategoryName), "削除しました。")}
+                onClick={() => confirmDelete({
+                  label: item.salaryCategoryName,
+                  kind: "入金分類",
+                  action: () => api.master.deleteSalaryCategory(item.salaryCategoryName)
+                })}
               />
             </span>
           ))}
         </div>
       </section>
+
+      {deleteTarget && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="category-delete-title">
+          <section className="panel receipt-confirm-modal">
+            <div className="receipt-confirm-icon receipt-confirm-icon--danger"><Trash2 size={21} /></div>
+            <div>
+              <h3 id="category-delete-title">この{deleteTarget.kind}を削除しますか？</h3>
+              <p>
+                「{deleteTarget.label}」を削除します。既存の明細で使用中の場合は削除できない場合があります。
+              </p>
+            </div>
+            <div className="receipt-confirm-actions">
+              <button type="button" className="command-button" disabled={busy} onClick={() => setDeleteTarget(null)}>
+                キャンセル
+              </button>
+              <button type="button" className="command-button command-button--danger" disabled={busy} onClick={executeDelete}>
+                <Trash2 size={17} />削除する
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

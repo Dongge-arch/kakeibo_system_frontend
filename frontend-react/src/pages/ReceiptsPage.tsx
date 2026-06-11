@@ -325,7 +325,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
         <form className="receipt-search-form" onSubmit={submitSearch}>
           <div className="receipt-search-grid receipt-search-grid--primary">
             <label className="field">
-              <span>場所</span>
+              <span>店舗名・支払先</span>
               <input value={form.supplierName} onChange={event => patchForm({ supplierName: event.target.value })} />
             </label>
             <label className="field">
@@ -481,19 +481,19 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
                 <input type="time" value={form.timeTo} onChange={event => patchForm({ timeTo: event.target.value })} />
               </label>
               <label className="field">
-                <span>商品価格 Min</span>
+                <span>明細金額 Min</span>
                 <input type="number" value={form.priceMin} onChange={event => patchForm({ priceMin: event.target.value })} />
               </label>
               <label className="field">
-                <span>商品価格 Max</span>
+                <span>明細金額 Max</span>
                 <input type="number" value={form.priceMax} onChange={event => patchForm({ priceMax: event.target.value })} />
               </label>
               <label className="field">
-                <span>総額 Min</span>
+                <span>レシート合計 Min</span>
                 <input type="number" value={form.totalMin} onChange={event => patchForm({ totalMin: event.target.value })} />
               </label>
               <label className="field">
-                <span>総額 Max</span>
+                <span>レシート合計 Max</span>
                 <input type="number" value={form.totalMax} onChange={event => patchForm({ totalMax: event.target.value })} />
               </label>
             </div>
@@ -520,7 +520,11 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
             <div className="drawer-head">
               <div>
                 <span className="section-kicker">Edit</span>
-                <h2>{editing.receiptId}</h2>
+                <h2>レシートを編集</h2>
+                <p className="drawer-title-detail">
+                  {editing.supplierName || editing.receiptDetails[0]?.itemName || "支払先未入力"} / {editing.receiptDate} {editing.receiptTime}
+                </p>
+                <small className="drawer-record-id">ID: {editing.receiptId}</small>
               </div>
               <IconButton label="閉じる" icon={X} onClick={() => setEditing(null)} />
             </div>

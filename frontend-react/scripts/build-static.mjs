@@ -4,7 +4,7 @@
  */
 
 import { build } from "esbuild";
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +19,7 @@ await mkdir(assetsDir, { recursive: true });
 await cp(publicDir, distDir, { recursive: true, force: true }).catch(error => {
   if (error?.code !== "ENOENT") throw error;
 });
+await ensureRuntimeConfig();
 
 const result = await build({
   absWorkingDir: rootDir,
@@ -94,4 +95,21 @@ function toPublicPath(path) {
     return normalized.slice(assetsIndex);
   }
   return `/${relative(distDir, path).split("\\").join("/")}`;
+}
+
+async function ensureRuntimeConfig() {
+  const configPath = resolve(distDir, "config.js");
+  try {
+    await access(configPath);
+    return;
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+
+  const config = {
+    apiBaseUrl: process.env.VITE_API_BASE_URL || "",
+    apiKey: process.env.VITE_API_KEY || ""
+  };
+  const js = `window.__KAKEIBO_CONFIG__ = ${JSON.stringify(config, null, 2)};\n`;
+  await writeFile(configPath, js, "utf8");
 }

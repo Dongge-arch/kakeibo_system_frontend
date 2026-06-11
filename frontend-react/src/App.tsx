@@ -175,12 +175,6 @@ export default function App() {
   }, [page, settings.budgetEnabled]);
 
   useEffect(() => {
-    if (page === "auto-linkage" && !settings.autoLinkageEnabled) {
-      setPage("dashboard");
-    }
-  }, [page, settings.autoLinkageEnabled]);
-
-  useEffect(() => {
     if (!auth.session) {
       setSettings(defaultSettings);
       applySettings(defaultSettings);
@@ -282,7 +276,15 @@ export default function App() {
         />
       );
     }
-    if (page === "auto-linkage") return <AutoLinkagePage notify={notify} />;
+    if (page === "auto-linkage") {
+      return (
+        <AutoLinkagePage
+          notify={notify}
+          featureEnabled={settings.autoLinkageEnabled}
+          onOpenSettings={() => setPage("settings")}
+        />
+      );
+    }
     return (
       <SettingsPage
         session={auth.session}

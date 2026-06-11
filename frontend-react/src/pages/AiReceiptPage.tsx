@@ -122,10 +122,20 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
     setSaving(true);
     try {
       const created = await api.receipt.create(receiptInfo);
+      let historySaveFailed = false;
       if (analysisId) {
-        await api.ai.saveFinal(analysisId, receiptInfo, created.receiptId).catch(() => null);
+        try {
+          await api.ai.saveFinal(analysisId, receiptInfo, created.receiptId);
+        } catch {
+          historySaveFailed = true;
+        }
       }
-      notify(`登録しました: ${created.receiptId}`, "success");
+      notify(
+        historySaveFailed
+          ? "レシート登録は完了しましたが、AI解析履歴の保存に失敗しました。"
+          : `登録しました: ${created.receiptId}`,
+        historySaveFailed ? "info" : "success"
+      );
       onSaved();
     } catch (error) {
       notify((error as Error).message, "error");
@@ -230,6 +240,15 @@ useEffect(() => {
         </div>
       </section>
 
+      {analysisId && (
+        <section className="ai-review-notice">
+          <strong>AI解析結果の確認</strong>
+          <span>登録前に、店舗名・日付・レシート合計・税区分・商品分類を確認してください。</span>
+          {receipt.totalPrice !== receipt.receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0) && (
+            <em>レシート合計と明細合計に差額があります。ポイント利用・クーポン・値引きなどを確認してください。</em>
+          )}
+        </section>
+      )}
       <ReceiptForm
         key={analysisId || image || "ai-form"}
         category1={category1}
@@ -240,11 +259,6 @@ useEffect(() => {
         compact
         onSubmit={save}
       />
-      {analysisId && receipt.totalPrice !== receipt.receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0) && (
-        <div className="ai-review-notice">
-          合計と明細合計に差額があります。登録前に内容を確認してください。
-        </div>
-      )}
     </div>
   );
 }

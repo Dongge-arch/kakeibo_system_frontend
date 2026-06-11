@@ -174,8 +174,7 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
         <nav className="nav-stack">
           {navGroups.map(group => {
             const items = group.items.filter(item =>
-              (budgetEnabled || item.key !== "budget") &&
-              (autoLinkageEnabled || item.key !== "auto-linkage")
+              budgetEnabled || item.key !== "budget"
             );
             if (!items.length) return null;
             return (

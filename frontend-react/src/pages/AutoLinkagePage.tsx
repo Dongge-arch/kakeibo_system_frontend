@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   CalendarClock,
   CheckCircle2,
   DownloadCloud,
@@ -16,10 +17,45 @@ import type { AutoLinkagePlace, AutoLinkageRunResult } from "../api/types";
 
 type Props = {
   notify: (message: string, tone?: "success" | "error" | "info") => void;
+  featureEnabled: boolean;
+  onOpenSettings: () => void;
 };
 
-export function AutoLinkagePage({ notify }: Props) {
-  const [places, setPlaces] = useState<AutoLinkagePlace[]>([]);
+const DEFAULT_PLACES: AutoLinkagePlace[] = [
+  {
+    connectionType: "BELC",
+    supplierName: "ベルク",
+    invoiceRegistrationNumber: "T8030001085963",
+    configured: false,
+    enabled: false
+  },
+  {
+    connectionType: "SUICA",
+    supplierName: "東日本旅客鉄道株式会社",
+    invoiceRegistrationNumber: "T9011001029597",
+    configured: false,
+    enabled: false
+  }
+];
+
+function mergeSupportedPlaces(rows: AutoLinkagePlace[] | null | undefined): AutoLinkagePlace[] {
+  // APIに未作成の連携先が含まれない場合も、画面上の設定入口は常に表示する。
+  return DEFAULT_PLACES.map(defaultPlace => {
+    const saved = (rows || []).find(place => place.connectionType === defaultPlace.connectionType);
+    return saved ? { ...defaultPlace, ...saved } : defaultPlace;
+  });
+}
+
+function runStatusLabel(result: AutoLinkageRunResult): string {
+  if (result.status === "CAPTCHA_REQUIRED") return "画像認証が必要です";
+  if (result.status === "COMPLETED" && (result.insertedCount ?? 0) === 0) return "新しい履歴はありません";
+  if (result.status === "COMPLETED" || result.status === "SUCCESS") return "取り込み完了";
+  if (result.status === "LOGIN_FAILED") return "ログインに失敗しました";
+  return result.ok ? "取り込み処理が完了しました" : "取り込みに失敗しました";
+}
+
+export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Props) {
+  const [places, setPlaces] = useState<AutoLinkagePlace[]>(DEFAULT_PLACES);
   const [selected, setSelected] = useState<AutoLinkagePlace | null>(null);
   const [accountId, setAccountId] = useState("");
   const [password, setPassword] = useState("");
@@ -27,6 +63,7 @@ export function AutoLinkagePage({ notify }: Props) {
   const [busy, setBusy] = useState(false);
   const [runResult, setRunResult] = useState<AutoLinkageRunResult | null>(null);
   const [captcha, setCaptcha] = useState("");
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
 
   useEffect(() => {
     loadPlaces();
@@ -37,9 +74,13 @@ export function AutoLinkagePage({ notify }: Props) {
   async function loadPlaces() {
     try {
       const rows = await api.autoLinkage.list();
-      setPlaces(rows);
-      setAutoEnabled(Boolean(rows.find(place => place.connectionType === "BELC")?.enabled));
+      const supportedPlaces = mergeSupportedPlaces(Array.isArray(rows) ? rows : []);
+      setPlaces(supportedPlaces);
+      setAutoEnabled(Boolean(supportedPlaces.find(place => place.connectionType === "BELC")?.enabled));
     } catch (error) {
+      // 通信失敗時も設定入口を消さず、再試行可能な状態を維持する。
+      setPlaces(DEFAULT_PLACES);
+      setAutoEnabled(false);
       notify((error as Error).message, "error");
     }
   }
@@ -53,6 +94,7 @@ export function AutoLinkagePage({ notify }: Props) {
       setPassword("");
       setRunResult(null);
       setCaptcha("");
+      setRemoveConfirmOpen(false);
     } catch (error) {
       notify((error as Error).message, "error");
     } finally {
@@ -80,29 +122,19 @@ export function AutoLinkagePage({ notify }: Props) {
 
   async function saveCredentials() {
     if (!selected) return;
+    if (!accountId.trim() || (!password && !selected.passwordRegistered)) {
+      notify("会員IDとパスワードを入力してください。", "error");
+      return;
+    }
     setBusy(true);
     try {
       const result = await api.autoLinkage.update(selected.connectionType, {
-        accountId,
+        accountId: accountId.trim(),
         password,
         enabled: selected.connectionType === "BELC" ? autoEnabled : false
       });
       notify(result.message || "ログイン情報を保存しました。", "success");
       await loadPlaces();
-      await openManualSettings(selected);
-    } catch (error) {
-      notify((error as Error).message, "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyCredentials() {
-    if (!selected) return;
-    setBusy(true);
-    try {
-      const result = await api.autoLinkage.login(selected.connectionType, { accountId, password });
-      notify(result.message || "ログイン情報を確認しました。", "success");
       await openManualSettings(selected);
     } catch (error) {
       notify((error as Error).message, "error");
@@ -148,12 +180,13 @@ export function AutoLinkagePage({ notify }: Props) {
   }
 
   async function removeAccount() {
-    if (!selected || !window.confirm(`${selected.supplierName}のログイン情報を削除しますか。`)) return;
+    if (!selected) return;
     setBusy(true);
     try {
       const result = await api.autoLinkage.remove(selected.connectionType);
       notify(result.message || "ログイン情報を削除しました。", "success");
       setSelected(null);
+      setRemoveConfirmOpen(false);
       await loadPlaces();
     } catch (error) {
       notify((error as Error).message, "error");
@@ -164,62 +197,27 @@ export function AutoLinkagePage({ notify }: Props) {
 
   return (
     <div className="auto-linkage-page">
-      <section className="panel linkage-section linkage-section--automatic">
-        <div className="section-heading">
+      {!featureEnabled && (
+        <section className="linkage-feature-notice">
+          <AlertCircle size={20} />
           <div>
-            <span className="section-kicker">Automatic Linkage</span>
-            <h2>自動データ連携</h2>
-            <p className="setting-description">有効にすると、毎日午前0時に新しい購入履歴を自動で取り込みます。</p>
+            <strong>出費自動連携は設定でOFFになっています</strong>
+            <span>ログイン情報の設定と取り込みを使用するには、アプリ設定で機能をONにしてください。</span>
           </div>
-          <span className={`status-badge ${autoEnabled ? "is-enabled" : ""}`}>
-            {autoEnabled ? "自動連携中" : "停止中"}
-          </span>
-        </div>
-
-        <div className="linkage-service-card">
-          <div className="linkage-service-icon"><Store size={24} /></div>
-          <div className="linkage-service-copy">
-            <strong>ベルク</strong>
-            <span><CalendarClock size={15} /> 毎日 午前0時に実行</span>
-            <small>現在、自動データ連携に対応しているサービスはベルクのみです。</small>
-          </div>
-          <label className="linkage-switch">
-            <input
-              type="checkbox"
-              checked={autoEnabled}
-              disabled={busy || !belc?.configured}
-              onChange={event => setAutoEnabled(event.target.checked)}
-            />
-            <span>{autoEnabled ? "ON" : "OFF"}</span>
-          </label>
-        </div>
-
-        {!belc?.configured && (
-          <div className="linkage-notice">
-            <KeyRound size={17} />
-            <span>先に手動データ連携からベルクのログイン情報を保存してください。</span>
-          </div>
-        )}
-        <div className="auto-linkage-actions">
-          <button
-            type="button"
-            className="command-button command-button--primary"
-            disabled={busy || !belc?.configured}
-            onClick={saveAutomaticSetting}
-          >
-            <Save size={17} />自動連携設定を保存
+          <button type="button" className="command-button" onClick={onOpenSettings}>
+            設定を開く
           </button>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="panel linkage-section">
         <div className="section-heading">
           <div>
-            <span className="section-kicker">Manual Linkage</span>
-            <h2>手動データ連携</h2>
-            <p className="setting-description">サービスを選択してログイン情報を保存すると、必要な時にすぐデータを取り込めます。</p>
+            <span className="linkage-step-label">1</span>
+            <h2>ログイン情報設定</h2>
+            <p className="setting-description">利用するサービスを選び、会員アカウントを設定します。</p>
           </div>
-          <DownloadCloud size={26} />
+          <KeyRound size={26} />
         </div>
 
         <div className="manual-linkage-grid">
@@ -276,38 +274,56 @@ export function AutoLinkagePage({ notify }: Props) {
             </div>
 
             <div className="auto-linkage-actions">
-              <button type="button" className="command-button command-button--primary" disabled={busy} onClick={saveCredentials}>
-                <Save size={17} />{busy ? "処理中..." : "ログイン情報を保存"}
-              </button>
-              <button type="button" className="command-button" disabled={busy} onClick={verifyCredentials}>
-                <LogIn size={17} />{busy ? "処理中..." : "ログイン情報を確認"}
-              </button>
-              <button
-                type="button"
-                className="command-button linkage-run-button"
-                disabled={busy || !selected.configured}
-                onClick={runManualLinkage}
-              >
-                <Play size={17} />{busy ? "連携実行中..." : "今すぐデータ連携"}
+              <button type="button" className="command-button command-button--primary" disabled={busy || !featureEnabled} onClick={saveCredentials}>
+                <Save size={17} />{busy ? "保存中..." : "ログイン情報を保存"}
               </button>
               {selected.configured && (
-                <button type="button" className="command-button command-button--danger" disabled={busy} onClick={removeAccount}>
+                <button type="button" className="command-button command-button--danger" disabled={busy || !featureEnabled} onClick={() => setRemoveConfirmOpen(true)}>
                   <Trash2 size={17} />ログイン情報を削除
                 </button>
               )}
             </div>
             <p className="setting-description">
               {selected.passwordRegistered
-                ? "パスワードを入力しない場合は、保存済みのパスワードを使用します。"
-                : "ログイン情報を保存すると、認証確認とデータ連携を実行できます。"}
+                ? "パスワードを入力しない場合は保存済みのパスワードを使用します。実際のログイン確認は取り込み時に行います。"
+                : "ログイン情報を保存すると取り込みを実行できます。実際のログイン確認は取り込み時に行います。"}
             </p>
 
-            {selected.connectionType === "SUICA" && (
-              <p className="setting-description">
-                Mobile Suicaは実行時に画像認証が必要です。表示された文字を入力すると利用履歴を取り込みます。
-              </p>
-            )}
+          </div>
+        )}
+      </section>
 
+      <section className="panel linkage-section">
+        <div className="section-heading">
+          <div>
+            <span className="linkage-step-label">2</span>
+            <h2>今すぐ取り込み</h2>
+            <p className="setting-description">選択したサービスの最新履歴を家計簿へ取り込みます。</p>
+          </div>
+          <DownloadCloud size={26} />
+        </div>
+
+        {selected ? (
+          <div className="manual-linkage-settings linkage-run-panel">
+            <div>
+              <strong>{selected.connectionType === "BELC" ? "ベルク購入履歴" : "Mobile Suica利用履歴"}</strong>
+              <p className="setting-description">
+                {selected.connectionType === "SUICA"
+                  ? "Mobile Suicaは取り込み時に画像認証が必要です。"
+                  : "ベルクの購入履歴を今すぐ取得します。"}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="command-button linkage-run-button"
+              disabled={busy || !featureEnabled || !selected.configured}
+              onClick={runManualLinkage}
+            >
+              <Play size={17} />{busy ? "取り込み中..." : `${selected.connectionType === "BELC" ? "ベルク" : "Suica"}履歴を取り込む`}
+            </button>
+            {!selected.configured && (
+              <p className="linkage-disabled-reason">ログイン情報を保存すると実行できます。</p>
+            )}
             {runResult?.status === "CAPTCHA_REQUIRED" && runResult.captchaImage && (
               <div className="suica-captcha-panel">
                 <img src={runResult.captchaImage} alt="Mobile Suica 画像認証" />
@@ -328,16 +344,90 @@ export function AutoLinkagePage({ notify }: Props) {
 
             {runResult && runResult.status !== "CAPTCHA_REQUIRED" && (
               <div className="auto-linkage-result">
-                <strong>データ連携結果: {runResult.status}</strong>
+                <strong>{runStatusLabel(runResult)}</strong>
                 <span>
                   取得 {runResult.fetchedCount ?? 0}件 / 新規 {runResult.insertedCount ?? 0}件 /
                   重複 {runResult.duplicateCount ?? 0}件 / 登録 {runResult.registeredCount ?? 0}件
+                  {(runResult.failedCount ?? 0) > 0 && ` / 失敗 ${runResult.failedCount}件`}
                 </span>
               </div>
             )}
           </div>
+        ) : (
+          <div className="linkage-notice">
+            <KeyRound size={17} />
+            <span>先に上のサービスを選択して、ログイン情報を設定してください。</span>
+          </div>
         )}
       </section>
+
+      <section className="panel linkage-section linkage-section--automatic">
+        <div className="section-heading">
+          <div>
+            <span className="linkage-step-label">3</span>
+            <h2>自動取り込み設定</h2>
+            <p className="setting-description">ベルクの新しい購入履歴を毎日午前0時に自動で取り込みます。</p>
+          </div>
+          <span className={`status-badge ${autoEnabled ? "is-enabled" : ""}`}>
+            {autoEnabled ? "自動取り込み中" : "停止中"}
+          </span>
+        </div>
+
+        <div className="linkage-service-card">
+          <div className="linkage-service-icon"><Store size={24} /></div>
+          <div className="linkage-service-copy">
+            <strong>ベルク</strong>
+            <span><CalendarClock size={15} /> 毎日 午前0時に実行</span>
+            <small>現在、自動取り込みに対応しているサービスはベルクのみです。</small>
+          </div>
+          <label className="linkage-switch">
+            <input
+              type="checkbox"
+              checked={autoEnabled}
+              disabled={busy || !featureEnabled || !belc?.configured}
+              onChange={event => setAutoEnabled(event.target.checked)}
+            />
+            <span>{autoEnabled ? "ON" : "OFF"}</span>
+          </label>
+        </div>
+
+        {!belc?.configured && (
+          <div className="linkage-notice">
+            <KeyRound size={17} />
+            <span>ベルクのログイン情報を保存すると、自動取り込みを設定できます。</span>
+          </div>
+        )}
+        <div className="auto-linkage-actions">
+          <button
+            type="button"
+            className="command-button command-button--primary"
+            disabled={busy || !featureEnabled || !belc?.configured}
+            onClick={saveAutomaticSetting}
+          >
+            <Save size={17} />自動取り込み設定を保存
+          </button>
+        </div>
+      </section>
+
+      {removeConfirmOpen && selected && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="remove-linkage-title">
+          <section className="panel linkage-confirm-modal">
+            <div className="linkage-confirm-icon"><Trash2 size={22} /></div>
+            <div>
+              <h3 id="remove-linkage-title">{selected.connectionType === "BELC" ? "ベルク" : "Mobile Suica"}のログイン情報を削除しますか？</h3>
+              <p>保存済みの会員ID・パスワードが削除されます。ベルクの場合は自動取り込みも停止します。</p>
+            </div>
+            <div className="auto-linkage-actions linkage-confirm-actions">
+              <button type="button" className="command-button" disabled={busy} onClick={() => setRemoveConfirmOpen(false)}>
+                キャンセル
+              </button>
+              <button type="button" className="command-button command-button--danger" disabled={busy} onClick={removeAccount}>
+                <Trash2 size={17} />削除する
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

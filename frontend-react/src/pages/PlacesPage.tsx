@@ -119,10 +119,10 @@ export function PlacesPage({ notify }: PlacesPageProps) {
 
             <div className="place-edit-layout">
               <div className="place-logo place-logo--large">
-                {buildImageSrc(editing.supplierImage || editing.supplierLogo || editing.img) ? <img src={buildImageSrc(editing.supplierImage || editing.supplierLogo || editing.img)} alt="" /> : <span>LOGO</span>}
+                {buildImageSrc(editing.supplierImage || editing.supplierLogo || editing.img) ? <img src={buildImageSrc(editing.supplierImage || editing.supplierLogo || editing.img)} alt="" /> : <span>店舗画像なし</span>}
               </div>
               <label className="file-button">
-                <Upload size={17} /> LOGO
+                <Upload size={17} /> 店舗画像
                 <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => changeLogo(event.target.files?.[0])} />
               </label>
             </div>

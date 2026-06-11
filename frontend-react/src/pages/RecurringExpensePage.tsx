@@ -180,11 +180,12 @@ export function RecurringExpensePage({ category1, category2, onChanged, notify }
             <h2>定期出費</h2>
           </div>
           <button type="button" className="command-button command-button--ghost" onClick={runNow}>
-            <CalendarClock size={17} /> 今すぐ確認
+            <CalendarClock size={17} /> 対象分を今すぐ登録
           </button>
         </div>
         <p className="panel-note">
-          家賃、電気代、サブスクなど毎月決まった日に発生する支出を登録します。ログイン時に対象日を過ぎていれば、当月分を自動で1回だけ出費明細へ登録します。
+          家賃、電気代、サブスクなど毎月決まった日に発生する支出を登録します。対象日を過ぎた未登録分だけ、当月の出費明細へ1回登録します。
+          月末に存在しない日付は、その月の最終日に登録します。
         </p>
 
         <form className="recurring-form" onSubmit={submit}>

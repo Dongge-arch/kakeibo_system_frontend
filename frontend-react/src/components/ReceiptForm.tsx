@@ -1,4 +1,4 @@
-import { Plus, Save, Trash2, WandSparkles } from "lucide-react";
+import { Plus, Save, Store, Trash2, Undo2, WandSparkles } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
@@ -59,6 +59,12 @@ type ReceiptFormProps = {
   onSubmit: (receipt: ReceiptFormType) => Promise<void>;
 };
 
+type SupplierLookupResult = {
+  supplierName: string;
+  supplierLogo?: string;
+  taxFlag?: string | number;
+};
+
 export function ReceiptForm({
   category1,
   category2,
@@ -71,11 +77,17 @@ export function ReceiptForm({
   const [form, setForm] = useState<ReceiptFormType>(() => normalizeReceiptForForm(initial || emptyReceipt(), category2));
   const [invoiceInput, setInvoiceInput] = useState(invoiceDigits(initial?.invoiceRegistrationNumber));
   const [lookupBusy, setLookupBusy] = useState(false);
+  const [pendingTaxFlag, setPendingTaxFlag] = useState<TaxFlag | null>(null);
+  const [pendingSupplier, setPendingSupplier] = useState<SupplierLookupResult | null>(null);
+  const [removedItem, setRemovedItem] = useState<{ item: ReceiptItem; index: number } | null>(null);
 
   useEffect(() => {
     const next = initial || emptyReceipt();
     setForm(normalizeReceiptForForm(next, category2));
     setInvoiceInput(invoiceDigits(next.invoiceRegistrationNumber));
+    setPendingTaxFlag(null);
+    setPendingSupplier(null);
+    setRemovedItem(null);
   }, [initial, category2]);
 
   const detailTotal = useMemo(
@@ -92,7 +104,10 @@ export function ReceiptForm({
 
   function updateTaxFlag(taxFlag: TaxFlag) {
     if (taxFlag === form.taxFlag) return;
-    if (!window.confirm("税区分を変更すると、すべての明細金額を再計算します。変更しますか。")) return;
+    setPendingTaxFlag(taxFlag);
+  }
+
+  function applyTaxFlag(taxFlag: TaxFlag) {
     setForm(current => {
       const receiptDetails = current.receiptDetails.map(item =>
         withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2)
@@ -103,6 +118,7 @@ export function ReceiptForm({
         receiptDetails
       };
     });
+    setPendingTaxFlag(null);
   }
 
   function updateItem(index: number, patchItem: Partial<ReceiptItem>) {
@@ -143,14 +159,33 @@ export function ReceiptForm({
 
   function removeRow(index: number) {
     setForm(current => {
+      const item = current.receiptDetails[index];
       const receiptDetails = current.receiptDetails.filter((_, i) => i !== index);
       const nextRows = receiptDetails.length ? receiptDetails : [{ ...blankItem }];
+      if (item) setRemovedItem({ item, index });
       return {
         ...current,
         receiptDetails: nextRows,
         totalPrice: nextRows.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
       };
     });
+  }
+
+  function restoreRemovedRow() {
+    if (!removedItem) return;
+    setForm(current => {
+      const currentRows = current.receiptDetails.length === 1 && isBlankItem(current.receiptDetails[0])
+        ? []
+        : current.receiptDetails;
+      const receiptDetails = [...currentRows];
+      receiptDetails.splice(Math.min(removedItem.index, receiptDetails.length), 0, removedItem.item);
+      return {
+        ...current,
+        receiptDetails,
+        totalPrice: receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
+      };
+    });
+    setRemovedItem(null);
   }
 
   async function lookupSupplier() {
@@ -167,31 +202,30 @@ export function ReceiptForm({
       const rows = await api.master.supplierByInvoice(invoiceNo);
       const found = rows?.[0];
       if (found) {
-        const taxFlag = String(found.taxFlag) === "1" ? "1" : "0";
-        const changesTaxFlag = taxFlag !== form.taxFlag;
-        const confirmMessage = changesTaxFlag
-          ? `${found.supplierName || "店舗情報"}を見つけました。店舗名と税区分を反映し、明細金額を再計算しますか。`
-          : `${found.supplierName || "店舗情報"}を見つけました。店舗名と店舗ロゴを反映しますか。`;
-        if (!window.confirm(confirmMessage)) {
-          patch({ invoiceRegistrationNumber: invoiceNo });
-          return;
-        }
-        const receiptDetails = changesTaxFlag
-          ? form.receiptDetails.map(item => withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2))
-          : form.receiptDetails;
-        patch({
-          invoiceRegistrationNumber: invoiceNo,
-          supplierName: found.supplierName || form.supplierName,
-          supplierImage: found.supplierLogo || form.supplierImage,
-          taxFlag,
-          receiptDetails
-        });
+        patch({ invoiceRegistrationNumber: invoiceNo });
+        setPendingSupplier(found);
       } else {
         patch({ invoiceRegistrationNumber: invoiceNo });
       }
     } finally {
       setLookupBusy(false);
     }
+  }
+
+  function applySupplier() {
+    if (!pendingSupplier) return;
+    const taxFlag: TaxFlag = String(pendingSupplier.taxFlag) === "1" ? "1" : "0";
+    const changesTaxFlag = taxFlag !== form.taxFlag;
+    const receiptDetails = changesTaxFlag
+      ? form.receiptDetails.map(item => withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2))
+      : form.receiptDetails;
+    patch({
+      supplierName: pendingSupplier.supplierName || form.supplierName,
+      supplierImage: pendingSupplier.supplierLogo || form.supplierImage,
+      taxFlag,
+      receiptDetails
+    });
+    setPendingSupplier(null);
   }
 
   async function onLogoFile(file?: File) {
@@ -259,7 +293,7 @@ export function ReceiptForm({
 
         <div className="form-grid form-grid--receipt">
           <label className="field invoice-field">
-            <span>登録番号（空欄可）</span>
+            <span>インボイス登録番号（任意）</span>
             <div className="prefix-input">
               <b>T</b>
               <input
@@ -267,14 +301,12 @@ export function ReceiptForm({
                 inputMode="numeric"
                 maxLength={13}
                 onChange={event => setInvoiceInput(event.target.value.replace(/\D/g, "").slice(0, 13))}
-                onBlur={() => {
-                  if (invoiceInput.length === 13) lookupSupplier().catch(console.error);
-                }}
               />
               <button type="button" onClick={lookupSupplier} disabled={lookupBusy || invoiceInput.length !== 13}>
-                <WandSparkles size={16} /> 参照
+                <WandSparkles size={16} /> 店舗情報を取得
               </button>
             </div>
+            <small className="field-hint">13桁の登録番号から店舗名・店舗画像・税区分を取得します。</small>
           </label>
           <label className="field">
             <span>店舗名（任意）</span>
@@ -306,10 +338,10 @@ export function ReceiptForm({
 
         <div className="logo-strip">
           <div className="logo-preview">
-            {logoSrc ? <img src={logoSrc} alt="" /> : <span>LOGO</span>}
+            {logoSrc ? <img src={logoSrc} alt="" /> : <span>店舗画像なし</span>}
           </div>
           <label className="file-button">
-            店舗ロゴ画像
+            店舗画像
             <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => onLogoFile(event.target.files?.[0])} />
           </label>
         </div>
@@ -330,7 +362,7 @@ export function ReceiptForm({
             <span>小分類</span>
             <span>数量</span>
             <span>{form.taxFlag === "0" ? "税抜単価" : "税込単価"}</span>
-            <span>割引</span>
+            <span>値引額</span>
             <span>税込金額</span>
             <span></span>
           </div>
@@ -359,8 +391,14 @@ export function ReceiptForm({
               <label className="line-field" data-label={form.taxFlag === "0" ? "税抜単価" : "税込単価"}>
                 <input type="number" value={numberFieldValue(item.unitPrice)} onChange={event => updateItem(index, { unitPrice: numberFieldParse(event.target.value) })} />
               </label>
-              <label className="line-field" data-label="割引">
-                <input type="number" value={numberFieldValue(item.discount)} onChange={event => updateItem(index, { discount: numberFieldParse(event.target.value) })} />
+              <label className="line-field" data-label="値引額">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="50円引きなら50"
+                  value={numberFieldValue(item.discount)}
+                  onChange={event => updateItem(index, { discount: numberFieldParse(event.target.value) })}
+                />
               </label>
               <label className="line-field line-field--total" data-label="税込金額">
                 <input
@@ -369,7 +407,7 @@ export function ReceiptForm({
                   value={numberFieldValue(item.totalPrice)}
                   onChange={event => updateItemTotal(index, numberFieldParse(event.target.value))}
                 />
-                <small>直接修正可</small>
+                <small>手入力した金額を優先</small>
               </label>
               <div className="line-field line-field--action">
                 <IconButton label="削除" icon={Trash2} variant="danger" onClick={() => removeRow(index)} />
@@ -380,11 +418,17 @@ export function ReceiptForm({
         <p className="receipt-detail-note">
           商品名または金額を入力した明細が保存されます。明細合計とレシート合計が一致しない場合でも保存できます。
         </p>
+        {removedItem && (
+          <div className="receipt-undo-notice" role="status">
+            <span>明細を削除しました。</span>
+            <button type="button" onClick={restoreRemovedRow}><Undo2 size={15} />元に戻す</button>
+          </div>
+        )}
       </section>
 
       <div className="sticky-submit">
         <div>
-          <span>保存額</span>
+          <span>今回保存する支出額</span>
           <strong>{yen(receiptTotal)}</strong>
           {totalDifference !== 0 && <small>明細合計 {yen(detailTotal)} / 差額 {yen(totalDifference)}</small>}
         </div>
@@ -392,8 +436,57 @@ export function ReceiptForm({
           <Save size={18} /> {busy ? "保存中" : submitLabel}
         </button>
       </div>
+
+      {pendingTaxFlag && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tax-change-title">
+          <section className="panel receipt-confirm-modal">
+            <div className="receipt-confirm-icon"><WandSparkles size={21} /></div>
+            <div>
+              <h3 id="tax-change-title">税区分を変更しますか？</h3>
+              <p>
+                「単価は{pendingTaxFlag === "0" ? "税抜" : "税込"}」に変更し、
+                入力済みの単価と値引額からすべての明細金額を再計算します。
+              </p>
+            </div>
+            <div className="receipt-confirm-actions">
+              <button type="button" className="command-button" onClick={() => setPendingTaxFlag(null)}>キャンセル</button>
+              <button type="button" className="command-button command-button--primary" onClick={() => applyTaxFlag(pendingTaxFlag)}>
+                再計算して変更
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {pendingSupplier && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="supplier-apply-title">
+          <section className="panel receipt-confirm-modal">
+            <div className="receipt-confirm-icon"><Store size={21} /></div>
+            <div>
+              <h3 id="supplier-apply-title">店舗情報を反映しますか？</h3>
+              <p>
+                「{pendingSupplier.supplierName || "取得した店舗"}」の店舗名・店舗画像・税区分を反映します。
+                税区分が変わる場合は明細金額も再計算されます。
+              </p>
+            </div>
+            <div className="receipt-confirm-actions">
+              <button type="button" className="command-button" onClick={() => setPendingSupplier(null)}>キャンセル</button>
+              <button type="button" className="command-button command-button--primary" onClick={applySupplier}>反映する</button>
+            </div>
+          </section>
+        </div>
+      )}
     </form>
   );
+}
+
+function isBlankItem(item: ReceiptItem): boolean {
+  return !item.itemName
+    && !item.category1
+    && !item.category2
+    && !parseNumber(item.unitPrice)
+    && !parseNumber(item.discount)
+    && !parseNumber(item.totalPrice);
 }
 
 function normalizeReceiptForForm(receipt: ReceiptFormType, category2: Category2[]): ReceiptFormType {

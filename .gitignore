@@ -2,6 +2,10 @@ build/
 dist/
 node_modules/
 frontend-react/node_modules/
+.DS_Store
+**/.DS_Store
+__MACOSX/
+**/__MACOSX/
 *.spec
 *.spec.json
 *.spec.yaml

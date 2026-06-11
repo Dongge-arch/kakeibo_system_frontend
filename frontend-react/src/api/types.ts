@@ -68,6 +68,8 @@ export type ReceiptFlatRow = {
   unit?: string;
   discount?: number;
   taxRate?: number;
+  // レシートヘッダに保存された合計。明細金額とは別に保持する。
+  receiptTotalPrice?: number;
   totalPrice: number;
   taxExcludedUnitPrice?: number;
   taxExcludedTotalPrice?: number;
@@ -169,6 +171,7 @@ export type AutoLinkageRunResult = {
   insertedCount?: number;
   duplicateCount?: number;
   registeredCount?: number;
+  failedCount?: number;
   skipped?: boolean;
 };
 

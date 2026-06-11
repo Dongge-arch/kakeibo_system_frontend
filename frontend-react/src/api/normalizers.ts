@@ -242,6 +242,7 @@ export function groupReceipts(rows: ReceiptFlatRow[]): ReceiptSummary[] {
   rows.forEach(row => {
     const key = row.receiptId;
     const supplierImage = receiptRowImage(row);
+    const headerTotal = parseOptionalNumber(row.receiptTotalPrice);
     const current = map.get(key) || {
       receiptId: row.receiptId,
       invoiceRegistrationNumber: row.invoiceRegistrationNumber || "",
@@ -250,14 +251,17 @@ export function groupReceipts(rows: ReceiptFlatRow[]): ReceiptSummary[] {
       receiptDate: row.receiptDate || "",
       receiptTime: row.receiptTime || "",
       taxFlag: toTaxFlag(row.taxFlag),
-      totalPrice: 0,
+      // ヘッダ合計が返る場合は保存額を優先し、旧APIだけ明細合計へフォールバックする。
+      totalPrice: headerTotal ?? 0,
       receiptDetails: []
     };
     if (!current.supplierImage && supplierImage) {
       current.supplierImage = supplierImage;
     }
     const itemTotal = parseNumber(row.totalPrice);
-    current.totalPrice += itemTotal;
+    if (headerTotal === undefined) {
+      current.totalPrice += itemTotal;
+    }
     current.receiptDetails.push({
       itemName: row.itemName || "",
       category1: row.category1 || "",
