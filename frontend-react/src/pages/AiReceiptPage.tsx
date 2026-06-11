@@ -291,6 +291,7 @@ function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptForm
     receipt: {
       invoiceRegistrationNumber: invoiceDigits(String(data.invoiceRegistrationNumber || data.invoiceNo || "")),
       supplierName: String(data.supplierName || data.storeName || data.shopName || ""),
+      supplierImage: String(data.supplierImage || data.supplierLogo || ""),
       receiptDate: String(data.receiptDate || data.date || ""),
       receiptTime: String(data.receiptTime || data.time || ""),
       taxFlag: toTaxFlag(data.taxFlag ?? data.taxIncluded),

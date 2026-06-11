@@ -519,6 +519,19 @@ function withTaxBreakdown(item: ReceiptItem, taxFlag: TaxFlag, category2: Catego
   const unitPrice = parseNumber(item.unitPrice);
   const discount = parseNumber(item.discount);
   const baseTotal = Math.max(0, quantity * unitPrice - discount);
+  const hasAiTaxPrices = hasTaxBreakdown(item);
+
+  // AI解析済みの税抜・税込価格がある場合は再計算せず、選択した税区分の価格を使う。
+  if (hasAiTaxPrices) {
+    return {
+      ...item,
+      taxRate,
+      unitPrice: taxFlag === "0"
+        ? parseNumber(item.taxExcludedUnitPrice)
+        : parseNumber(item.taxIncludedUnitPrice),
+      totalPrice: parseNumber(item.taxIncludedTotalPrice)
+    };
+  }
 
   if (taxFlag === "0") {
     const taxIncludedUnitPrice = Math.round(unitPrice * taxMultiplier);
