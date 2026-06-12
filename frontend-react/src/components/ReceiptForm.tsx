@@ -110,7 +110,7 @@ export function ReceiptForm({
   function applyTaxFlag(taxFlag: TaxFlag) {
     setForm(current => {
       const receiptDetails = current.receiptDetails.map(item =>
-        withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2)
+        withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag), taxFlag, category2)
       );
       return {
         ...current,
@@ -217,7 +217,9 @@ export function ReceiptForm({
     const taxFlag: TaxFlag = String(pendingSupplier.taxFlag) === "1" ? "1" : "0";
     const changesTaxFlag = taxFlag !== form.taxFlag;
     const receiptDetails = changesTaxFlag
-      ? form.receiptDetails.map(item => withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2))
+      ? form.receiptDetails.map(item =>
+          withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag), taxFlag, category2)
+        )
       : form.receiptDetails;
     patch({
       supplierName: pendingSupplier.supplierName || form.supplierName,
@@ -491,7 +493,7 @@ function isBlankItem(item: ReceiptItem): boolean {
 
 function normalizeReceiptForForm(receipt: ReceiptFormType, category2: Category2[]): ReceiptFormType {
   const receiptDetails = (receipt.receiptDetails.length ? receipt.receiptDetails : [{ ...blankItem }]).map(item => {
-    const normalized = normalizeReceiptItem(item);
+    const normalized = unitPriceForTaxFlag(normalizeReceiptItem(item), receipt.taxFlag);
     return {
       ...normalized,
       totalPrice: normalized.totalPrice || calcItemTotal(normalized, receipt.taxFlag, category2)
@@ -503,6 +505,15 @@ function normalizeReceiptForForm(receipt: ReceiptFormType, category2: Category2[
     receiptDetails,
     totalPrice: parseNumber(receipt.totalPrice) || detailTotal
   };
+}
+
+function unitPriceForTaxFlag(item: ReceiptItem, taxFlag: TaxFlag): ReceiptItem {
+  const storedPrice = taxFlag === "0"
+    ? item.taxExcludedUnitPrice
+    : item.taxIncludedUnitPrice;
+  return storedPrice === undefined || storedPrice === null
+    ? item
+    : { ...item, unitPrice: parseNumber(storedPrice) };
 }
 
 function taxRateForItem(item: ReceiptItem, category2: Category2[]): number {
@@ -519,20 +530,6 @@ function withTaxBreakdown(item: ReceiptItem, taxFlag: TaxFlag, category2: Catego
   const unitPrice = parseNumber(item.unitPrice);
   const discount = parseNumber(item.discount);
   const baseTotal = Math.max(0, quantity * unitPrice - discount);
-  const hasAiTaxPrices = hasTaxBreakdown(item);
-
-  // AI解析済みの税抜・税込価格がある場合は再計算せず、選択した税区分の価格を使う。
-  if (hasAiTaxPrices) {
-    return {
-      ...item,
-      taxRate,
-      unitPrice: taxFlag === "0"
-        ? parseNumber(item.taxExcludedUnitPrice)
-        : parseNumber(item.taxIncludedUnitPrice),
-      totalPrice: parseNumber(item.taxIncludedTotalPrice)
-    };
-  }
-
   if (taxFlag === "0") {
     const taxIncludedUnitPrice = Math.round(unitPrice * taxMultiplier);
     const taxIncludedTotalPrice = Math.round(baseTotal * taxMultiplier);

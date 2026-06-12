@@ -48,7 +48,11 @@ function mergeSupportedPlaces(rows: AutoLinkagePlace[] | null | undefined): Auto
 
 function runStatusLabel(result: AutoLinkageRunResult): string {
   if (result.status === "CAPTCHA_REQUIRED") return "画像認証が必要です";
-  if (result.status === "COMPLETED" && (result.insertedCount ?? 0) === 0) return "新しい履歴はありません";
+  if (
+    result.status === "COMPLETED"
+    && (result.insertedCount ?? 0) === 0
+    && (result.registeredCount ?? 0) === 0
+  ) return "新しい履歴はありません";
   if (result.status === "COMPLETED" || result.status === "SUCCESS") return "取り込み完了";
   if (result.status === "LOGIN_FAILED") return "ログインに失敗しました";
   return result.ok ? "取り込み処理が完了しました" : "取り込みに失敗しました";
@@ -342,7 +346,7 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
               </div>
             )}
 
-            {runResult && runResult.status !== "CAPTCHA_REQUIRED" && (
+            {runResult && ["COMPLETED", "SUCCESS"].includes(runResult.status) && (
               <div className="auto-linkage-result">
                 <strong>{runStatusLabel(runResult)}</strong>
                 <span>
