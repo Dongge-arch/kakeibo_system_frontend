@@ -153,6 +153,19 @@ export function ReceiptForm({
     });
   }
 
+  function recalculateTaxIncludedPrices() {
+    setForm(current => {
+      const receiptDetails = current.receiptDetails.map(item =>
+        withTaxBreakdown(normalizeReceiptItem(item), "0", category2)
+      );
+      return {
+        ...current,
+        receiptDetails,
+        totalPrice: receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
+      };
+    });
+  }
+
   function addRow() {
     setForm(current => ({ ...current, receiptDetails: [...current.receiptDetails, { ...blankItem }] }));
   }
@@ -352,9 +365,20 @@ export function ReceiptForm({
       <section className="panel">
         <div className="table-toolbar">
           <h3>明細</h3>
-          <button type="button" className="command-button command-button--ghost" onClick={addRow}>
-            <Plus size={17} /> 行追加
-          </button>
+          <div className="toolbar-actions">
+            {form.taxFlag === "0" && (
+              <button
+                type="button"
+                className="command-button command-button--ghost"
+                onClick={recalculateTaxIncludedPrices}
+              >
+                <WandSparkles size={17} /> 分類税率で税込価格を再計算
+              </button>
+            )}
+            <button type="button" className="command-button command-button--ghost" onClick={addRow}>
+              <Plus size={17} /> 行追加
+            </button>
+          </div>
         </div>
 
         <div className="line-table">
@@ -388,7 +412,15 @@ export function ReceiptForm({
                 </select>
               </label>
               <label className="line-field" data-label="数量">
-                <input type="number" value={numberFieldValue(item.quantity, false)} onChange={event => updateItem(index, { quantity: numberFieldParse(event.target.value) || 0 })} />
+                <input
+                  type="number"
+                  min="1"
+                  value={numberFieldValue(item.quantity)}
+                  onChange={event => updateItem(index, { quantity: numberFieldParse(event.target.value) })}
+                  onBlur={() => {
+                    if (!parseNumber(item.quantity)) updateItem(index, { quantity: 1 });
+                  }}
+                />
               </label>
               <label className="line-field" data-label={form.taxFlag === "0" ? "税抜単価" : "税込単価"}>
                 <input type="number" value={numberFieldValue(item.unitPrice)} onChange={event => updateItem(index, { unitPrice: numberFieldParse(event.target.value) })} />

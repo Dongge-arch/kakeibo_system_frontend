@@ -400,8 +400,12 @@ export const api = {
       "/receipt/receiptReference",
       condition
     ),
-    prepareExport: (type: "excel" | "pdf", rows: ReceiptFlatRow[]) => post<{ url: string }>(
-      "/export/receipt/prepare",
+    exportFile: (type: "excel" | "pdf", rows: ReceiptFlatRow[]) => post<{
+      filename: string;
+      mediaType: string;
+      contentBase64: string;
+    }>(
+      "/export/receipt/file",
       { type, rows }
     ),
     update: (receiptInfo: ReceiptForm) => put<{ message: string }>(

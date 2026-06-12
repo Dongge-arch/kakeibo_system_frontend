@@ -272,29 +272,27 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
      * Returns:
      *   Promise<void>: 出力準備処理の完了。
      */
-    // 検索済み明細を一時保存し、別タブでダウンロードページを開く。
     if (!exportRows.length) {
       notify("出力対象のデータがありません。先に検索してください。", "error");
       return;
     }
 
     const label = exportLabels[type];
-    const exportWindow = window.open("about:blank", "_blank");
-    if (!exportWindow) {
-      notify("新しいページを開けませんでした。ポップアップ許可を確認してください。", "error");
-      return;
-    }
-
-    exportWindow.document.open();
-    exportWindow.document.write(`<main style="font-family: sans-serif; padding: 32px;"><h1>${label} ファイルを準備しています</h1><p>準備完了後にダウンロードを開始します。</p></main>`);
-    exportWindow.document.close();
-
     setExporting(type);
     try {
-      const result = await api.receipt.prepareExport(type, exportRows);
-      exportWindow.location.href = apiUrl(result.url);
+      const result = await api.receipt.exportFile(type, exportRows);
+      const binary = atob(result.contentBase64);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: result.mediaType }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      notify(`${label} ファイルを出力しました。`, "success");
     } catch (error) {
-      exportWindow.close();
       notify((error as Error).message, "error");
     } finally {
       setExporting(null);
