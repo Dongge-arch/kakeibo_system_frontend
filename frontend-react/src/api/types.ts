@@ -148,7 +148,7 @@ export type AppSettings = {
 };
 
 export type AutoLinkagePlace = {
-  connectionType: "BELC" | "SUICA";
+  connectionType: "BELC" | "SUICA" | "ETC";
   supplierName: string;
   invoiceRegistrationNumber: string;
   configured: boolean;

@@ -35,8 +35,31 @@ const DEFAULT_PLACES: AutoLinkagePlace[] = [
     invoiceRegistrationNumber: "T9011001029597",
     configured: false,
     enabled: false
+  },
+  {
+    connectionType: "ETC",
+    supplierName: "東日本高速道路株式会社",
+    invoiceRegistrationNumber: "T9010001095716",
+    configured: false,
+    enabled: false
   }
 ];
+
+function serviceName(connectionType: AutoLinkagePlace["connectionType"]): string {
+  if (connectionType === "BELC") return "ベルク";
+  if (connectionType === "SUICA") return "Mobile Suica";
+  return "ETC利用照会サービス";
+}
+
+function historyName(connectionType: AutoLinkagePlace["connectionType"]): string {
+  if (connectionType === "BELC") return "ベルク購入履歴";
+  if (connectionType === "SUICA") return "Mobile Suica利用履歴";
+  return "ETC利用明細";
+}
+
+function serviceIcon(connectionType: AutoLinkagePlace["connectionType"]) {
+  return connectionType === "BELC" ? <Store size={22} /> : <ShieldCheck size={22} />;
+}
 
 function mergeSupportedPlaces(rows: AutoLinkagePlace[] | null | undefined): AutoLinkagePlace[] {
   // APIに未作成の連携先が含まれない場合も、画面上の設定入口は常に表示する。
@@ -234,10 +257,10 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
               onClick={() => openManualSettings(place)}
             >
               <span className="linkage-service-icon">
-                {place.connectionType === "BELC" ? <Store size={22} /> : <ShieldCheck size={22} />}
+                {serviceIcon(place.connectionType)}
               </span>
               <span>
-                <strong>{place.connectionType === "BELC" ? "ベルク" : "Mobile Suica"}</strong>
+                <strong>{serviceName(place.connectionType)}</strong>
                 <small>{place.configured ? "ログイン情報設定済み" : "ログイン情報未設定"}</small>
               </span>
               <span className={`linkage-card-status ${place.configured ? "is-ready" : ""}`}>
@@ -253,7 +276,7 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
             <div className="manual-linkage-heading">
               <div>
                 <span className="section-kicker">Account Settings</span>
-                <h3>{selected.connectionType === "BELC" ? "ベルク" : "Mobile Suica"} ログイン設定</h3>
+                <h3>{serviceName(selected.connectionType)} ログイン設定</h3>
               </div>
               <span className={`status-badge ${selected.configured ? "is-enabled" : ""}`}>
                 {selected.configured ? "設定済み" : "未設定"}
@@ -310,11 +333,13 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
         {selected ? (
           <div className="manual-linkage-settings linkage-run-panel">
             <div>
-              <strong>{selected.connectionType === "BELC" ? "ベルク購入履歴" : "Mobile Suica利用履歴"}</strong>
+              <strong>{historyName(selected.connectionType)}</strong>
               <p className="setting-description">
                 {selected.connectionType === "SUICA"
                   ? "Mobile Suicaは取り込み時に画像認証が必要です。"
-                  : "ベルクの購入履歴を今すぐ取得します。"}
+                  : selected.connectionType === "ETC"
+                    ? "ETC利用照会サービスの利用明細を今すぐ取得します。"
+                    : "ベルクの購入履歴を今すぐ取得します。"}
               </p>
             </div>
             <button
@@ -323,7 +348,7 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
               disabled={busy || !featureEnabled || !selected.configured}
               onClick={runManualLinkage}
             >
-              <Play size={17} />{busy ? "取り込み中..." : `${selected.connectionType === "BELC" ? "ベルク" : "Suica"}履歴を取り込む`}
+              <Play size={17} />{busy ? "取り込み中..." : `${serviceName(selected.connectionType)}履歴を取り込む`}
             </button>
             {!selected.configured && (
               <p className="linkage-disabled-reason">ログイン情報を保存すると実行できます。</p>
@@ -418,7 +443,7 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
           <section className="panel linkage-confirm-modal">
             <div className="linkage-confirm-icon"><Trash2 size={22} /></div>
             <div>
-              <h3 id="remove-linkage-title">{selected.connectionType === "BELC" ? "ベルク" : "Mobile Suica"}のログイン情報を削除しますか？</h3>
+              <h3 id="remove-linkage-title">{serviceName(selected.connectionType)}のログイン情報を削除しますか？</h3>
               <p>保存済みの会員ID・パスワードが削除されます。ベルクの場合は自動取り込みも停止します。</p>
             </div>
             <div className="auto-linkage-actions linkage-confirm-actions">
