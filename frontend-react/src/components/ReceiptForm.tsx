@@ -121,6 +121,20 @@ export function ReceiptForm({
     setPendingTaxFlag(null);
   }
 
+  function applyTaxFlagKeepingAmounts(taxFlag: TaxFlag) {
+    setForm(current => {
+      const receiptDetails = current.receiptDetails.map(item =>
+        withTaxFlagKeepingAmounts(normalizeReceiptItem(item), taxFlag, category2)
+      );
+      return {
+        ...current,
+        taxFlag,
+        receiptDetails
+      };
+    });
+    setPendingTaxFlag(null);
+  }
+
   function updateItem(index: number, patchItem: Partial<ReceiptItem>) {
     setForm(current => {
       const affectsPrice = Object.keys(patchItem).some(key => priceAffectingKeys.has(key as keyof ReceiptItem));
@@ -478,12 +492,15 @@ export function ReceiptForm({
             <div>
               <h3 id="tax-change-title">税区分を変更しますか？</h3>
               <p>
-                「単価は{pendingTaxFlag === "0" ? "税抜" : "税込"}」に変更し、
-                入力済みの単価と値引額からすべての明細金額を再計算します。
+                「単価は{pendingTaxFlag === "0" ? "税抜" : "税込"}」に変更します。
+                現在の税込金額を維持するか、入力済みの単価から再計算するか選んでください。
               </p>
             </div>
             <div className="receipt-confirm-actions">
               <button type="button" className="command-button" onClick={() => setPendingTaxFlag(null)}>キャンセル</button>
+              <button type="button" className="command-button" onClick={() => applyTaxFlagKeepingAmounts(pendingTaxFlag)}>
+                金額はそのまま
+              </button>
               <button type="button" className="command-button command-button--primary" onClick={() => applyTaxFlag(pendingTaxFlag)}>
                 再計算して変更
               </button>
@@ -584,6 +601,31 @@ function withTaxBreakdown(item: ReceiptItem, taxFlag: TaxFlag, category2: Catego
     taxExcludedTotalPrice: taxMultiplier ? Math.round(baseTotal / taxMultiplier) : baseTotal,
     taxIncludedUnitPrice: unitPrice,
     taxIncludedTotalPrice: baseTotal
+  };
+}
+
+function withTaxFlagKeepingAmounts(item: ReceiptItem, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
+  const taxRate = taxRateForItem(item, category2);
+  const taxMultiplier = 1 + taxRate;
+  const quantity = parseNumber(item.quantity) || 1;
+  const includedTotal = parseNumber(item.taxIncludedTotalPrice ?? item.totalPrice);
+  const includedUnit = parseNumber(
+    item.taxIncludedUnitPrice
+      ?? (quantity ? Math.round(includedTotal / quantity) : item.unitPrice)
+      ?? item.unitPrice
+  );
+  const excludedUnit = taxMultiplier ? Math.round(includedUnit / taxMultiplier) : includedUnit;
+  const excludedTotal = taxMultiplier ? Math.round(includedTotal / taxMultiplier) : includedTotal;
+
+  return {
+    ...item,
+    taxRate,
+    unitPrice: taxFlag === "0" ? excludedUnit : includedUnit,
+    totalPrice: includedTotal,
+    taxExcludedUnitPrice: excludedUnit,
+    taxExcludedTotalPrice: excludedTotal,
+    taxIncludedUnitPrice: includedUnit,
+    taxIncludedTotalPrice: includedTotal
   };
 }
 
