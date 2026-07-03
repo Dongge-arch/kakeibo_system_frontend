@@ -80,6 +80,8 @@ export function ReceiptForm({
   const [pendingTaxFlag, setPendingTaxFlag] = useState<TaxFlag | null>(null);
   const [pendingSupplier, setPendingSupplier] = useState<SupplierLookupResult | null>(null);
   const [removedItem, setRemovedItem] = useState<{ item: ReceiptItem; index: number } | null>(null);
+  const [bulkCategory1, setBulkCategory1] = useState("");
+  const [bulkCategory2, setBulkCategory2] = useState("");
 
   useEffect(() => {
     const next = initial || emptyReceipt();
@@ -88,6 +90,8 @@ export function ReceiptForm({
     setPendingTaxFlag(null);
     setPendingSupplier(null);
     setRemovedItem(null);
+    setBulkCategory1("");
+    setBulkCategory2("");
   }, [initial, category2]);
 
   const detailTotal = useMemo(
@@ -110,7 +114,7 @@ export function ReceiptForm({
   function applyTaxFlag(taxFlag: TaxFlag) {
     setForm(current => {
       const receiptDetails = current.receiptDetails.map(item =>
-        withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag), taxFlag, category2)
+        withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag, category2), taxFlag, category2)
       );
       return {
         ...current,
@@ -165,6 +169,33 @@ export function ReceiptForm({
           || receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0)
       };
     });
+  }
+
+  function updateItemDraft(index: number, patchItem: Partial<ReceiptItem>) {
+    setForm(current => ({
+      ...current,
+      receiptDetails: current.receiptDetails.map((item, i) =>
+        i === index ? { ...item, ...patchItem } : item
+      )
+    }));
+  }
+
+  function applyCategoryToAll() {
+    if (!bulkCategory1 || !bulkCategory2) return;
+    setForm(current => ({
+      ...current,
+      receiptDetails: current.receiptDetails.map(item =>
+        withTaxBreakdown(
+          normalizeReceiptItem({
+            ...item,
+            category1: bulkCategory1,
+            category2: bulkCategory2
+          }),
+          current.taxFlag,
+          category2
+        )
+      )
+    }));
   }
 
   function recalculateTaxIncludedPrices() {
@@ -245,7 +276,7 @@ export function ReceiptForm({
     const changesTaxFlag = taxFlag !== form.taxFlag;
     const receiptDetails = changesTaxFlag
       ? form.receiptDetails.map(item =>
-          withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag), taxFlag, category2)
+          withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag, category2), taxFlag, category2)
         )
       : form.receiptDetails;
     patch({
@@ -310,7 +341,7 @@ export function ReceiptForm({
               <input
                 id="receipt-total"
                 type="number"
-                min="0"
+                step="0.01"
                 value={numberFieldValue(form.totalPrice)}
                 onChange={event => patch({ totalPrice: numberFieldParse(event.target.value) })}
               />
@@ -380,6 +411,42 @@ export function ReceiptForm({
         <div className="table-toolbar">
           <h3>明細</h3>
           <div className="toolbar-actions">
+            <select
+              aria-label="一括設定する大分類"
+              value={bulkCategory1}
+              onChange={event => {
+                setBulkCategory1(event.target.value);
+                setBulkCategory2("");
+              }}
+            >
+              <option value="">大分類を一括設定</option>
+              {category1.map(row => (
+                <option key={row.category1Name} value={row.category1Name}>{row.category1Name}</option>
+              ))}
+            </select>
+            <select
+              aria-label="一括設定する小分類"
+              value={bulkCategory2}
+              disabled={!bulkCategory1}
+              onChange={event => setBulkCategory2(event.target.value)}
+            >
+              <option value="">小分類を選択</option>
+              {category2
+                .filter(row => row.category1Name === bulkCategory1)
+                .map(row => (
+                  <option key={`${row.category1Name}-${row.category2Name}`} value={row.category2Name}>
+                    {row.category2Name}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              className="command-button command-button--ghost"
+              disabled={!bulkCategory1 || !bulkCategory2}
+              onClick={applyCategoryToAll}
+            >
+              全明細に適用
+            </button>
             {form.taxFlag === "0" && (
               <button
                 type="button"
@@ -428,21 +495,24 @@ export function ReceiptForm({
               <label className="line-field" data-label="数量">
                 <input
                   type="number"
-                  min="1"
+                  min="0.01"
+                  step="0.01"
                   value={numberFieldValue(item.quantity)}
-                  onChange={event => updateItem(index, { quantity: numberFieldParse(event.target.value) })}
+                  onChange={event => updateItemDraft(index, {
+                    quantity: event.target.value === "" ? Number.NaN : Number(event.target.value)
+                  })}
                   onBlur={() => {
-                    if (!parseNumber(item.quantity)) updateItem(index, { quantity: 1 });
+                    updateItem(index, { quantity: parseNumber(item.quantity) || 1 });
                   }}
                 />
               </label>
               <label className="line-field" data-label={form.taxFlag === "0" ? "税抜単価" : "税込単価"}>
-                <input type="number" value={numberFieldValue(item.unitPrice)} onChange={event => updateItem(index, { unitPrice: numberFieldParse(event.target.value) })} />
+                <input type="number" step="0.01" value={numberFieldValue(item.unitPrice)} onChange={event => updateItem(index, { unitPrice: numberFieldParse(event.target.value) })} />
               </label>
               <label className="line-field" data-label="値引額">
                 <input
                   type="number"
-                  min="0"
+                  step="0.01"
                   placeholder="50円引きなら50"
                   value={numberFieldValue(item.discount)}
                   onChange={event => updateItem(index, { discount: numberFieldParse(event.target.value) })}
@@ -451,7 +521,7 @@ export function ReceiptForm({
               <label className="line-field line-field--total" data-label="税込金額">
                 <input
                   type="number"
-                  min="0"
+                  step="0.01"
                   value={numberFieldValue(item.totalPrice)}
                   onChange={event => updateItemTotal(index, numberFieldParse(event.target.value))}
                 />
@@ -542,11 +612,13 @@ function isBlankItem(item: ReceiptItem): boolean {
 
 function normalizeReceiptForForm(receipt: ReceiptFormType, category2: Category2[]): ReceiptFormType {
   const receiptDetails = (receipt.receiptDetails.length ? receipt.receiptDetails : [{ ...blankItem }]).map(item => {
-    const normalized = unitPriceForTaxFlag(normalizeReceiptItem(item), receipt.taxFlag);
-    return {
-      ...normalized,
-      totalPrice: normalized.totalPrice || calcItemTotal(normalized, receipt.taxFlag, category2)
-    };
+    const normalized = normalizeReceiptItem(item);
+    if (receipt.pricesAreRaw) {
+      // 2026-07-03 Codex: AI prices are raw printed amounts; taxFlag is resolved by DB/user after analysis.
+      return withTaxBreakdown(normalized, receipt.taxFlag, category2);
+    }
+    const anchored = withIncludedTotalAnchor(normalized, receipt.taxFlag, category2);
+    return unitPriceForTaxFlag(anchored, receipt.taxFlag, category2);
   });
   const detailTotal = receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0);
   return {
@@ -556,13 +628,14 @@ function normalizeReceiptForForm(receipt: ReceiptFormType, category2: Category2[
   };
 }
 
-function unitPriceForTaxFlag(item: ReceiptItem, taxFlag: TaxFlag): ReceiptItem {
+function unitPriceForTaxFlag(item: ReceiptItem, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
+  const anchored = withIncludedTotalAnchor(item, taxFlag, category2);
   const storedPrice = taxFlag === "0"
-    ? item.taxExcludedUnitPrice
-    : item.taxIncludedUnitPrice;
+    ? anchored.taxExcludedUnitPrice
+    : anchored.taxIncludedUnitPrice;
   return storedPrice === undefined || storedPrice === null
-    ? item
-    : { ...item, unitPrice: parseNumber(storedPrice) };
+    ? anchored
+    : { ...anchored, unitPrice: parseNumber(storedPrice) };
 }
 
 function taxRateForItem(item: ReceiptItem, category2: Category2[]): number {
@@ -578,10 +651,10 @@ function withTaxBreakdown(item: ReceiptItem, taxFlag: TaxFlag, category2: Catego
   const quantity = parseNumber(item.quantity) || 1;
   const unitPrice = parseNumber(item.unitPrice);
   const discount = parseNumber(item.discount);
-  const baseTotal = Math.max(0, quantity * unitPrice - discount);
+  const baseTotal = roundMoney(quantity * unitPrice - discount);
   if (taxFlag === "0") {
-    const taxIncludedUnitPrice = Math.round(unitPrice * taxMultiplier);
-    const taxIncludedTotalPrice = Math.round(baseTotal * taxMultiplier);
+    const taxIncludedUnitPrice = roundMoney(unitPrice * taxMultiplier);
+    const taxIncludedTotalPrice = roundMoney(baseTotal * taxMultiplier);
     return {
       ...item,
       taxRate,
@@ -597,10 +670,36 @@ function withTaxBreakdown(item: ReceiptItem, taxFlag: TaxFlag, category2: Catego
     ...item,
     taxRate,
     totalPrice: baseTotal,
-    taxExcludedUnitPrice: taxMultiplier ? Math.round(unitPrice / taxMultiplier) : unitPrice,
-    taxExcludedTotalPrice: taxMultiplier ? Math.round(baseTotal / taxMultiplier) : baseTotal,
+    taxExcludedUnitPrice: taxMultiplier ? roundMoney(unitPrice / taxMultiplier) : unitPrice,
+    taxExcludedTotalPrice: taxMultiplier ? roundMoney(baseTotal / taxMultiplier) : baseTotal,
     taxIncludedUnitPrice: unitPrice,
     taxIncludedTotalPrice: baseTotal
+  };
+}
+
+function withIncludedTotalAnchor(item: ReceiptItem, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
+  // 2026-06-29 Codex: AIが税抜/税込を誤判定しても、レシート明細の税込合計を基準に復元できるようにする。
+  const taxRate = taxRateForItem(item, category2);
+  const taxMultiplier = 1 + taxRate;
+  const quantity = parseNumber(item.quantity) || 1;
+  const includedTotal = parseNumber(item.totalPrice ?? item.taxIncludedTotalPrice);
+  if (!includedTotal) {
+    return withTaxBreakdown(item, taxFlag, category2);
+  }
+
+  const includedUnit = roundMoney(includedTotal / quantity);
+  const excludedUnit = taxMultiplier ? roundMoney(includedUnit / taxMultiplier) : includedUnit;
+  const excludedTotal = taxMultiplier ? roundMoney(includedTotal / taxMultiplier) : includedTotal;
+
+  return {
+    ...item,
+    taxRate,
+    unitPrice: taxFlag === "0" ? excludedUnit : includedUnit,
+    totalPrice: includedTotal,
+    taxExcludedUnitPrice: excludedUnit,
+    taxExcludedTotalPrice: excludedTotal,
+    taxIncludedUnitPrice: includedUnit,
+    taxIncludedTotalPrice: includedTotal
   };
 }
 
@@ -611,11 +710,11 @@ function withTaxFlagKeepingAmounts(item: ReceiptItem, taxFlag: TaxFlag, category
   const includedTotal = parseNumber(item.taxIncludedTotalPrice ?? item.totalPrice);
   const includedUnit = parseNumber(
     item.taxIncludedUnitPrice
-      ?? (quantity ? Math.round(includedTotal / quantity) : item.unitPrice)
+      ?? (quantity ? roundMoney(includedTotal / quantity) : item.unitPrice)
       ?? item.unitPrice
   );
-  const excludedUnit = taxMultiplier ? Math.round(includedUnit / taxMultiplier) : includedUnit;
-  const excludedTotal = taxMultiplier ? Math.round(includedTotal / taxMultiplier) : includedTotal;
+  const excludedUnit = taxMultiplier ? roundMoney(includedUnit / taxMultiplier) : includedUnit;
+  const excludedTotal = taxMultiplier ? roundMoney(includedTotal / taxMultiplier) : includedTotal;
 
   return {
     ...item,
@@ -632,16 +731,16 @@ function withTaxFlagKeepingAmounts(item: ReceiptItem, taxFlag: TaxFlag, category
 function withManualTotal(item: ReceiptItem, totalPrice: number, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
   const taxRate = taxRateForItem(item, category2);
   const taxMultiplier = 1 + taxRate;
-  const normalizedTotal = Math.max(0, parseNumber(totalPrice));
+  const normalizedTotal = roundMoney(parseNumber(totalPrice));
   if (taxFlag === "0") {
-    const taxExcludedTotalPrice = taxMultiplier ? Math.round(normalizedTotal / taxMultiplier) : normalizedTotal;
+    const taxExcludedTotalPrice = taxMultiplier ? roundMoney(normalizedTotal / taxMultiplier) : normalizedTotal;
     return {
       ...item,
       taxRate,
       totalPrice: normalizedTotal,
       taxExcludedUnitPrice: parseNumber(item.unitPrice),
       taxExcludedTotalPrice,
-      taxIncludedUnitPrice: Math.round(parseNumber(item.unitPrice) * taxMultiplier),
+      taxIncludedUnitPrice: roundMoney(parseNumber(item.unitPrice) * taxMultiplier),
       taxIncludedTotalPrice: normalizedTotal
     };
   }
@@ -649,8 +748,8 @@ function withManualTotal(item: ReceiptItem, totalPrice: number, taxFlag: TaxFlag
     ...item,
     taxRate,
     totalPrice: normalizedTotal,
-    taxExcludedUnitPrice: taxMultiplier ? Math.round(parseNumber(item.unitPrice) / taxMultiplier) : parseNumber(item.unitPrice),
-    taxExcludedTotalPrice: taxMultiplier ? Math.round(normalizedTotal / taxMultiplier) : normalizedTotal,
+    taxExcludedUnitPrice: taxMultiplier ? roundMoney(parseNumber(item.unitPrice) / taxMultiplier) : parseNumber(item.unitPrice),
+    taxExcludedTotalPrice: taxMultiplier ? roundMoney(normalizedTotal / taxMultiplier) : normalizedTotal,
     taxIncludedUnitPrice: parseNumber(item.unitPrice),
     taxIncludedTotalPrice: normalizedTotal
   };
@@ -688,5 +787,10 @@ function numberFieldValue(value: number | string | null | undefined, hideZero = 
 }
 
 function numberFieldParse(value: string) {
-  return value.trim() === "" ? 0 : parseNumber(value);
+  return value.trim() === "" ? 0 : roundMoney(parseNumber(value));
+}
+
+function roundMoney(value: number) {
+  // 2026-07-03 Codex: Keep price/quantity calculations to two decimals without blocking negative prices.
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
 }

@@ -201,8 +201,9 @@ export function calcItemTotal(item: ReceiptItem, taxFlag: TaxFlag, category2: Ca
   // 税区分と小分類の税率を使って明細金額を再計算する。
   const found = category2.find(row => row.category1Name === item.category1 && row.category2Name === item.category2);
   const taxRate = Number(found?.taxRate ?? item.taxRate ?? 0.1);
-  const base = Math.max(0, (parseNumber(item.quantity) * parseNumber(item.unitPrice)) - parseNumber(item.discount));
-  return Math.round(taxFlag === "1" ? base : base * (1 + taxRate));
+  // 2026-07-03 Codex: Preserve negative prices and two-decimal amounts for refunds/adjustments.
+  const base = (parseNumber(item.quantity) * parseNumber(item.unitPrice)) - parseNumber(item.discount);
+  return Math.round((taxFlag === "1" ? base : base * (1 + taxRate)) * 100) / 100;
 }
 
 export function recalcItems(items: ReceiptItem[], taxFlag: TaxFlag, category2: Category2[]): ReceiptItem[] {

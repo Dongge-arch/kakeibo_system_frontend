@@ -46,6 +46,10 @@ export type ReceiptForm = {
   taxFlag: TaxFlag;
   totalPrice: number;
   receiptDetails: ReceiptItem[];
+  needsReview?: boolean;
+  reviewWarnings?: string[];
+  pricesAreRaw?: boolean;
+  needsTaxSelection?: boolean;
 };
 
 // API検索結果のフラットな明細行。

@@ -2,7 +2,7 @@ import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch, Tex
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { fileToDataUrl, invoiceDigits, parseNumber, toTaxFlag } from "../api/normalizers";
-import type { Category1, Category2, ReceiptForm as ReceiptFormType, ReceiptItem } from "../api/types";
+import type { Category1, Category2, ReceiptForm as ReceiptFormType, ReceiptItem, TaxFlag } from "../api/types";
 import { emptyReceipt, ReceiptForm } from "../components/ReceiptForm";
 
 type AiReceiptPageProps = {
@@ -20,6 +20,8 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
   const [receiptText, setReceiptText] = useState("");
   const [analysisId, setAnalysisId] = useState("");
   const [receipt, setReceipt] = useState<ReceiptFormType>(emptyReceipt());
+  const [reviewWarnings, setReviewWarnings] = useState<string[]>([]);
+  const [taxSelectionRequired, setTaxSelectionRequired] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
@@ -49,7 +51,13 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
 
     try {
       setCameraError("");
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 2560 }
+        }
+      });
       cameraStreamRef.current = stream;
       const video = videoRef.current;
       if (video) {
@@ -108,7 +116,11 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
         categories: { category1, category2 }
       });
       const normalized = normalizeAiResult(result);
-      setReceipt(normalized.receipt);
+      const resolvedReceipt = await resolveAiTaxFlag(normalized.receipt);
+      setReceipt(resolvedReceipt.receipt);
+      // 2026-06-29 Codex: バックエンドのAI金額整合性チェック結果を登録前レビューに表示する。
+      setReviewWarnings(normalized.reviewWarnings);
+      setTaxSelectionRequired(resolvedReceipt.needsUserSelection);
       setAnalysisId(String(result.analysisId || ""));
       notify("AI解析が完了しました。", "success");
     } catch (error) {
@@ -119,6 +131,10 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
   }
 
   async function save(receiptInfo: ReceiptFormType) {
+    if (taxSelectionRequired) {
+      notify("このレシートが税抜か税込か選択してください。", "error");
+      return;
+    }
     setSaving(true);
     try {
       const created = await api.receipt.create(receiptInfo);
@@ -137,6 +153,7 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
         historySaveFailed ? "info" : "success"
       );
       onSaved();
+      resetAiPage(true);
     } catch (error) {
       notify((error as Error).message, "error");
     } finally {
@@ -144,16 +161,77 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
     }
   }
 
-useEffect(() => {
+  async function resolveAiTaxFlag(nextReceipt: ReceiptFormType): Promise<{ receipt: ReceiptFormType; needsUserSelection: boolean }> {
+    const invoiceNo = nextReceipt.invoiceRegistrationNumber ? `T${invoiceDigits(nextReceipt.invoiceRegistrationNumber)}` : "";
+    if (invoiceNo.length === 14) {
+      try {
+        const rows = await api.master.supplierByInvoice(invoiceNo);
+        const found = rows?.[0];
+        if (found) {
+          const taxFlag: TaxFlag = String(found.taxFlag) === "1" ? "1" : "0";
+          // 2026-07-03 Codex: Apply registered supplier taxFlag after AI returns; AI taxFlag is ignored.
+          return {
+            needsUserSelection: false,
+            receipt: {
+              ...nextReceipt,
+              invoiceRegistrationNumber: invoiceNo,
+              supplierName: found.supplierName || nextReceipt.supplierName,
+              supplierImage: found.supplierLogo || nextReceipt.supplierImage,
+              taxFlag,
+              pricesAreRaw: true,
+              needsTaxSelection: false
+            }
+          };
+        }
+      } catch {
+        // Let the user choose tax mode if supplier lookup fails.
+      }
+    }
+    return {
+      needsUserSelection: true,
+      receipt: {
+        ...nextReceipt,
+        taxFlag: "1",
+        pricesAreRaw: true,
+        needsTaxSelection: true
+      }
+    };
+  }
+
+  function applyAiTaxSelection(taxFlag: TaxFlag) {
+    setReceipt(current => ({
+      ...current,
+      taxFlag,
+      pricesAreRaw: true,
+      needsTaxSelection: false
+    }));
+    setTaxSelectionRequired(false);
+  }
+
+  function resetAiPage(restartCamera = false) {
+    stopCamera();
+    setImage("");
+    setMimeType("image/jpeg");
+    setInputMode("image");
+    setReceiptText("");
+    setAnalysisId("");
+    setReceipt(emptyReceipt());
+    setReviewWarnings([]);
+    setTaxSelectionRequired(false);
+    setCaptured(false);
+    setCameraError("");
+    if (restartCamera) {
+      // 2026-07-03 Codex: After saving an AI receipt, return directly to capture mode for the next receipt.
+      window.setTimeout(() => {
+        startCamera();
+      }, 120);
+    }
+  }
+
+  useEffect(() => {
     if (inputMode !== "image") {
       stopCamera();
-      return;
     }
-
-    if (!image) {
-      startCamera();
-    }
-
     return () => stopCamera();
   }, [inputMode, image]);
 
@@ -191,7 +269,7 @@ useEffect(() => {
                     <div className="scan-overlay">
                       <span>レシートスキャン枠</span>
                     </div>
-                    {!cameraActive && !cameraError && <div className="camera-placeholder">カメラを起動中...</div>}
+                    {!cameraActive && !cameraError && <div className="camera-placeholder">写真を選択するか、カメラを起動してください。</div>}
                     {cameraError && <div className="camera-error">{cameraError}</div>}
                   </>
                 )}
@@ -200,8 +278,8 @@ useEffect(() => {
                 {!image ? (
                   <>
                     <p className="ai-upload-guidance">レシートを撮影するか、写真から選択してください。</p>
-                    <button type="button" className="command-button command-button--ghost" onClick={captureFrame} disabled={!cameraActive}>
-                      <Camera size={17} /> 撮影
+                    <button type="button" className="command-button command-button--ghost" onClick={cameraActive ? captureFrame : startCamera}>
+                      <Camera size={17} /> {cameraActive ? "撮影" : "カメラ起動"}
                     </button>
                     <label className="command-button command-button--ghost">
                       <GalleryHorizontalEnd size={17} /> 写真
@@ -214,9 +292,8 @@ useEffect(() => {
                       setImage("");
                       setCaptured(false);
                       setCameraError("");
-                      setTimeout(startCamera, 50);
                     }}>
-                      <Camera size={17} /> 再撮影
+                      <Camera size={17} /> 画像を選び直す
                     </button>
                     <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
                       {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
@@ -241,13 +318,30 @@ useEffect(() => {
       </section>
 
       {analysisId && (
-        <section className="ai-review-notice">
+        <section className={`ai-review-notice ${reviewWarnings.length ? "ai-review-notice--attention" : ""}`}>
           <strong>AI解析結果の確認</strong>
           <span>登録前に、店舗名・日付・レシート合計・税区分・商品分類を確認してください。</span>
+          {reviewWarnings.map((message, index) => (
+            <em key={`${message}-${index}`}>{message}</em>
+          ))}
           {receipt.totalPrice !== receipt.receiptDetails.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0) && (
             <em>レシート合計と明細合計に差額があります。ポイント利用・クーポン・値引きなどを確認してください。</em>
           )}
         </section>
+      )}
+      {taxSelectionRequired && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ai-tax-select-title">
+          <section className="panel receipt-confirm-modal">
+            <div>
+              <h3 id="ai-tax-select-title">このレシートの価格は税抜ですか？税込ですか？</h3>
+              <p>登録済み店舗の税区分が見つからなかったため、AIの判断は使わずここで選択します。</p>
+            </div>
+            <div className="receipt-confirm-actions">
+              <button type="button" className="command-button" onClick={() => applyAiTaxSelection("0")}>税抜</button>
+              <button type="button" className="command-button command-button--primary" onClick={() => applyAiTaxSelection("1")}>税込</button>
+            </div>
+          </section>
+        </div>
       )}
       <ReceiptForm
         key={analysisId || image || "ai-form"}
@@ -263,19 +357,22 @@ useEffect(() => {
   );
 }
 
-function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptFormType } {
+function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptFormType; reviewWarnings: string[] } {
   const data = (raw.receiptInfo || raw.receipt || raw) as Record<string, unknown>;
   const details = ((data.receiptDetails || data.items || raw.receiptDetails || raw.items || []) as Record<string, unknown>[])
     .filter(Boolean)
     .map(item => {
       const total = parseNumber(item.totalPrice ?? item.amount ?? item.price);
+      const quantity = parseNumber(item.quantity) || 1;
+      const rawUnitPrice = item.unitPrice ?? item.unit_price;
       return {
         itemName: String(item.itemName || item.name || ""),
         category1: String(item.category1 || item.category || ""),
         category2: String(item.category2 || item.subCategory || ""),
         taxRate: parseNumber(item.taxRate ?? item.tax_rate) || 0.1,
-        quantity: parseNumber(item.quantity) || 1,
-        unitPrice: parseNumber(item.unitPrice ?? item.price ?? item.amount ?? total),
+        quantity,
+        // 2026-07-03 Codex: If AI only returns a line total, derive unit price from quantity.
+        unitPrice: rawUnitPrice === undefined || rawUnitPrice === null || rawUnitPrice === "" ? total / quantity : parseNumber(rawUnitPrice),
         discount: parseNumber(item.discount),
         totalPrice: total,
         taxExcludedUnitPrice: parseOptionalNumber(item.taxExcludedUnitPrice),
@@ -287,6 +384,12 @@ function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptForm
 
   const receiptDetails = details.length ? details : emptyReceipt().receiptDetails;
   const receiptTotal = parseNumber(data.totalPrice ?? data.total ?? data.amount);
+  const reviewWarnings = Array.isArray(raw.reviewWarnings)
+    ? raw.reviewWarnings.map(item => String(item)).filter(Boolean)
+    : [];
+  if (raw.needsReview && reviewWarnings.length === 0) {
+    reviewWarnings.push("AI解析結果に確認が必要な項目があります。");
+  }
   return {
     receipt: {
       invoiceRegistrationNumber: invoiceDigits(String(data.invoiceRegistrationNumber || data.invoiceNo || "")),
@@ -296,8 +399,13 @@ function normalizeAiResult(raw: Record<string, unknown>): { receipt: ReceiptForm
       receiptTime: String(data.receiptTime || data.time || ""),
       taxFlag: toTaxFlag(data.taxFlag ?? data.taxIncluded),
       totalPrice: receiptTotal || receiptDetails.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
-      receiptDetails
-    }
+      receiptDetails,
+      needsReview: Boolean(raw.needsReview),
+      reviewWarnings,
+      pricesAreRaw: Boolean(data.pricesAreRaw || raw.needsTaxSelection),
+      needsTaxSelection: Boolean(data.needsTaxSelection || raw.needsTaxSelection)
+    },
+    reviewWarnings
   };
 }
 

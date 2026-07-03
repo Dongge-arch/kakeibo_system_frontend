@@ -86,7 +86,7 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
   const [selected, setSelected] = useState<AutoLinkagePlace | null>(null);
   const [accountId, setAccountId] = useState("");
   const [password, setPassword] = useState("");
-  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [automaticSettings, setAutomaticSettings] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [runResult, setRunResult] = useState<AutoLinkageRunResult | null>(null);
   const [captcha, setCaptcha] = useState("");
@@ -97,17 +97,20 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
   }, []);
 
   const belc = places.find(place => place.connectionType === "BELC");
+  const etc = places.find(place => place.connectionType === "ETC");
 
   async function loadPlaces() {
     try {
       const rows = await api.autoLinkage.list();
       const supportedPlaces = mergeSupportedPlaces(Array.isArray(rows) ? rows : []);
       setPlaces(supportedPlaces);
-      setAutoEnabled(Boolean(supportedPlaces.find(place => place.connectionType === "BELC")?.enabled));
+      setAutomaticSettings(Object.fromEntries(
+        supportedPlaces.map(place => [place.connectionType, Boolean(place.enabled)])
+      ));
     } catch (error) {
       // 通信失敗時も設定入口を消さず、再試行可能な状態を維持する。
       setPlaces(DEFAULT_PLACES);
-      setAutoEnabled(false);
+      setAutomaticSettings({});
       notify((error as Error).message, "error");
     }
   }
@@ -130,15 +133,17 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
   }
 
   async function saveAutomaticSetting() {
-    if (!belc) return;
     setBusy(true);
     try {
-      const detail = await api.autoLinkage.get("BELC");
-      const result = await api.autoLinkage.update("BELC", {
-        accountId: detail.accountId || "",
-        enabled: autoEnabled
-      });
-      notify(result.message || "自動データ連携の設定を保存しました。", "success");
+      const targets = [belc, etc].filter((place): place is AutoLinkagePlace => Boolean(place?.configured));
+      await Promise.all(targets.map(async place => {
+        const detail = await api.autoLinkage.get(place.connectionType);
+        await api.autoLinkage.update(place.connectionType, {
+          accountId: detail.accountId || "",
+          enabled: Boolean(automaticSettings[place.connectionType])
+        });
+      }));
+      notify("自動データ連携の設定を保存しました。", "success");
       await loadPlaces();
     } catch (error) {
       notify((error as Error).message, "error");
@@ -158,7 +163,9 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
       const result = await api.autoLinkage.update(selected.connectionType, {
         accountId: accountId.trim(),
         password,
-        enabled: selected.connectionType === "BELC" ? autoEnabled : false
+        enabled: selected.connectionType === "SUICA"
+          ? false
+          : Boolean(automaticSettings[selected.connectionType])
       });
       notify(result.message || "ログイン情報を保存しました。", "success");
       await loadPlaces();
@@ -395,42 +402,60 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
           <div>
             <span className="linkage-step-label">3</span>
             <h2>自動取り込み設定</h2>
-            <p className="setting-description">ベルクの新しい購入履歴を毎日午前0時に自動で取り込みます。</p>
+            <p className="setting-description">ベルクとETCの新しい履歴を毎日午前0時に自動で取り込みます。</p>
           </div>
-          <span className={`status-badge ${autoEnabled ? "is-enabled" : ""}`}>
-            {autoEnabled ? "自動取り込み中" : "停止中"}
+          <span className={`status-badge ${Object.values(automaticSettings).some(Boolean) ? "is-enabled" : ""}`}>
+            {Object.values(automaticSettings).some(Boolean) ? "自動取り込み中" : "停止中"}
           </span>
         </div>
 
+        {[belc, etc].filter((place): place is AutoLinkagePlace => Boolean(place)).map(place => (
+          <div className="linkage-service-card" key={place.connectionType}>
+            <div className="linkage-service-icon">{serviceIcon(place.connectionType)}</div>
+            <div className="linkage-service-copy">
+              <strong>{serviceName(place.connectionType)}</strong>
+              <span><CalendarClock size={15} /> 毎日 午前0時に実行</span>
+              <small>EventBridgeから自動入力バッチを起動します。</small>
+            </div>
+            <label className="linkage-switch">
+              <input
+                type="checkbox"
+                checked={Boolean(automaticSettings[place.connectionType])}
+                disabled={busy || !featureEnabled || !place.configured}
+                onChange={event => setAutomaticSettings(current => ({
+                  ...current,
+                  [place.connectionType]: event.target.checked
+                }))}
+              />
+              <span>{automaticSettings[place.connectionType] ? "ON" : "OFF"}</span>
+            </label>
+          </div>
+        ))}
+
         <div className="linkage-service-card">
-          <div className="linkage-service-icon"><Store size={24} /></div>
+          <div className="linkage-service-icon"><ShieldCheck size={24} /></div>
           <div className="linkage-service-copy">
-            <strong>ベルク</strong>
-            <span><CalendarClock size={15} /> 毎日 午前0時に実行</span>
-            <small>現在、自動取り込みに対応しているサービスはベルクのみです。</small>
+            <strong>Mobile Suica</strong>
+            <span><CalendarClock size={15} /> 手動取り込みのみ</span>
+            <small>画像認証が必要なため、EventBridgeによる無人実行には対応できません。</small>
           </div>
           <label className="linkage-switch">
-            <input
-              type="checkbox"
-              checked={autoEnabled}
-              disabled={busy || !featureEnabled || !belc?.configured}
-              onChange={event => setAutoEnabled(event.target.checked)}
-            />
-            <span>{autoEnabled ? "ON" : "OFF"}</span>
+            <input type="checkbox" checked={false} disabled />
+            <span>手動</span>
           </label>
         </div>
 
-        {!belc?.configured && (
+        {(!belc?.configured || !etc?.configured) && (
           <div className="linkage-notice">
             <KeyRound size={17} />
-            <span>ベルクのログイン情報を保存すると、自動取り込みを設定できます。</span>
+            <span>各サービスのログイン情報を保存すると、そのサービスの自動取り込みを設定できます。</span>
           </div>
         )}
         <div className="auto-linkage-actions">
           <button
             type="button"
             className="command-button command-button--primary"
-            disabled={busy || !featureEnabled || !belc?.configured}
+            disabled={busy || !featureEnabled || (!belc?.configured && !etc?.configured)}
             onClick={saveAutomaticSetting}
           >
             <Save size={17} />自動取り込み設定を保存

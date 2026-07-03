@@ -127,7 +127,8 @@
 }
 
 :root[data-large-text="true"] {
-  font-size: 18px;
+  /* 2026-06-29 Codex: Large text mode is 1.5x the previous 18px large-text baseline. */
+  font-size: 27px;
 }
 
 :root[data-large-text="true"] .nav-link,
@@ -136,6 +137,16 @@
 :root[data-large-text="true"] button,
 :root[data-large-text="true"] .field span {
   font-size: 1.05rem;
+}
+
+:root[data-large-text="true"] .device-page--desktop-landscape .app-shell {
+  /* 2026-07-03 Codex: Keep large navigation labels readable after the 1.5x text increase. */
+  grid-template-columns: minmax(420px, min(40vw, 560px)) minmax(0, 1fr);
+}
+
+:root[data-large-text="true"] .nav-link {
+  min-height: 56px;
+  line-height: 1.18;
 }
 
 * {
@@ -1484,6 +1495,12 @@ textarea:focus,
   color: var(--text);
   background: color-mix(in srgb, var(--gold) 12%, var(--panel));
   font-size: 13px;
+}
+
+/* 2026-06-29 Codex: AIの金額補正・確認事項がある時だけレビュー通知を少し強調する。 */
+.ai-review-notice--attention {
+  border-color: color-mix(in srgb, var(--coral) 52%, var(--line));
+  background: color-mix(in srgb, var(--coral) 10%, var(--panel));
 }
 
 .ai-review-notice span {
@@ -4264,6 +4281,50 @@ code {
 :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .app-shell {
   display: grid;
   grid-template-columns: 276px minmax(0, 1fr);
+}
+
+:root[data-device-page="desktop-landscape"][data-large-text="true"] .device-page--desktop-landscape .app-shell {
+  /* 2026-07-03 Codex: Large text mode uses a wider rail so nav labels stay readable. */
+  grid-template-columns: minmax(420px, min(40vw, 560px)) minmax(0, 1fr);
+}
+
+:root[data-large-text="true"] .device-page--mobile .side-rail,
+:root[data-large-text="true"] .device-page--mobile-safari .side-rail {
+  /* 2026-07-03 Codex: Give the mobile large-text drawer more room for full menu labels. */
+  width: min(96vw, 520px);
+}
+
+:root[data-large-text="true"] .device-page--mobile .nav-group,
+:root[data-large-text="true"] .device-page--mobile-safari .nav-group {
+  /* 2026-07-03 Codex: Large mobile labels need full rows instead of the compact two-column drawer. */
+  grid-template-columns: 1fr;
+}
+
+:root[data-large-text="true"] .device-page--mobile .nav-link,
+:root[data-large-text="true"] .device-page--mobile-safari .nav-link {
+  /* 2026-07-03 Codex: Keep enlarged menu labels readable on phones. */
+  grid-template-columns: 30px minmax(0, 1fr);
+  min-height: 64px;
+  align-items: center;
+}
+
+:root[data-large-text="true"] .device-page--mobile .nav-link span,
+:root[data-large-text="true"] .device-page--mobile-safari .nav-link span {
+  /* 2026-07-03 Codex: Do not ellipsize large mobile navigation labels. */
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+:root[data-large-text="true"] .auth-mode-switch,
+:root[data-large-text="true"] .auth-mode-switch--three {
+  /* 2026-06-29 Codex: Stack auth tabs in large text mode so labels do not split mid-word. */
+  grid-template-columns: 1fr;
+}
+
+:root[data-large-text="true"] .auth-mode-switch button {
+  min-height: 54px;
+  white-space: nowrap;
 }
 
 :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .side-rail {
