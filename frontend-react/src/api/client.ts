@@ -358,7 +358,7 @@ export const api = {
     ) => post<{ ok: boolean; status: string; message?: string }>(`/auto-linkages/${connectionType}/login`, payload),
     run: (
       connectionType: AutoLinkagePlace["connectionType"],
-      payload: { runAction?: "start" | "submit"; challengeId?: string; captcha?: string } = {}
+      payload: { runAction?: "start" | "submit"; challengeId?: string; captcha?: string; verificationCode?: string } = {}
     ) => post<AutoLinkageRunResult>(`/auto-linkages/${connectionType}/run`, payload),
     remove: (connectionType: AutoLinkagePlace["connectionType"]) =>
       remove<{ ok: boolean; message?: string }>(`/auto-linkages/${connectionType}`)

@@ -152,7 +152,7 @@ export type AppSettings = {
 };
 
 export type AutoLinkagePlace = {
-  connectionType: "BELC" | "SUICA" | "ETC";
+  connectionType: string;
   supplierName: string;
   invoiceRegistrationNumber: string;
   configured: boolean;
@@ -170,6 +170,7 @@ export type AutoLinkageRunResult = {
   message?: string;
   challengeId?: string;
   captchaImage?: string;
+  verificationLabel?: string;
   expiresInSeconds?: number;
   fetchedCount?: number;
   insertedCount?: number;

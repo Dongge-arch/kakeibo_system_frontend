@@ -3212,6 +3212,53 @@ pre {
   font-size: 13px;
 }
 
+.linkage-notice--planned {
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold-2) 70%, var(--panel));
+}
+
+.linkage-board-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.linkage-board {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--panel) 76%, var(--panel-strong));
+}
+
+.linkage-board-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.linkage-board-head h3 {
+  margin: 0;
+}
+
+.linkage-board-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.linkage-board-head > span {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: var(--teal);
+  background: var(--teal-2);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .manual-linkage-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3232,6 +3279,10 @@ pre {
 .manual-linkage-card.is-selected {
   border-color: color-mix(in srgb, var(--teal) 58%, var(--line));
   box-shadow: 0 12px 28px color-mix(in srgb, var(--teal) 12%, transparent);
+}
+
+.manual-linkage-card.is-planned {
+  background: color-mix(in srgb, var(--panel-strong) 72%, var(--panel));
 }
 
 .manual-linkage-card strong,
@@ -3255,6 +3306,10 @@ pre {
 
 .linkage-card-status.is-ready {
   color: var(--green);
+}
+
+.linkage-card-status.is-planned {
+  color: var(--gold);
 }
 
 .manual-linkage-settings {
@@ -3360,6 +3415,11 @@ pre {
   color: var(--text);
 }
 
+.auto-linkage-result--warning {
+  /* 2026-07-13 Codex: Amazon追加確認など、ユーザー操作が必要な停止状態を完了状態と区別して表示する。 */
+  background: rgba(245, 158, 11, 0.14);
+}
+
 .suica-captcha-panel {
   display: grid;
   gap: 14px;
@@ -3412,6 +3472,14 @@ pre {
   .manual-linkage-grid,
   .linkage-credential-grid {
     grid-template-columns: 1fr;
+  }
+
+  .linkage-board {
+    padding: 14px;
+  }
+
+  .linkage-board-head {
+    display: grid;
   }
 
   .linkage-service-card {
