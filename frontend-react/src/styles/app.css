@@ -1435,6 +1435,16 @@ textarea:focus,
   gap: 16px;
 }
 
+.receipt-tax-modal {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.receipt-confirm-body {
+  min-width: 0;
+}
+
 .receipt-confirm-modal h3 {
   margin: 0 0 8px;
 }
@@ -1465,6 +1475,78 @@ textarea:focus,
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.tax-conversion-options {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tax-conversion-option {
+  min-width: 0;
+  min-height: 154px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  color: var(--text);
+  background: var(--panel);
+  text-align: left;
+}
+
+.tax-conversion-option:hover,
+.tax-conversion-option:focus-visible {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal-2) 42%, var(--panel));
+}
+
+.tax-conversion-option.is-primary {
+  border-color: color-mix(in srgb, var(--teal) 55%, var(--line));
+  background: color-mix(in srgb, var(--teal-2) 58%, var(--panel));
+}
+
+.tax-conversion-option__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  color: var(--teal);
+  background: var(--teal-2);
+}
+
+.tax-conversion-option__content {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.tax-conversion-option__content strong {
+  font-size: 16px;
+}
+
+.tax-conversion-option__content small {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.tax-conversion-option__content code {
+  min-width: 0;
+  margin-top: 2px;
+  border-left: 3px solid var(--gold);
+  padding: 7px 9px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--gold-2) 54%, var(--panel));
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .drawer-title-detail {
@@ -4154,6 +4236,33 @@ code {
 
   .avatar-crop-actions .command-button {
     flex: 1 1 0;
+  }
+
+  .receipt-tax-modal {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .receipt-tax-modal .receipt-confirm-icon {
+    display: none;
+  }
+
+  .tax-conversion-options {
+    grid-template-columns: 1fr;
+  }
+
+  .tax-conversion-option {
+    min-height: 0;
+  }
+
+  .receipt-tax-modal .receipt-confirm-actions {
+    justify-content: stretch;
+  }
+
+  .receipt-tax-modal .receipt-confirm-actions .command-button {
+    width: 100%;
   }
 
   .month-button-grid {

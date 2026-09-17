@@ -1,4 +1,4 @@
-import { Plus, Save, Store, Trash2, Undo2, WandSparkles } from "lucide-react";
+import { Calculator, Equal, Plus, Save, Store, Trash2, Undo2, WandSparkles } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
@@ -111,29 +111,32 @@ export function ReceiptForm({
     setPendingTaxFlag(taxFlag);
   }
 
-  function applyTaxFlag(taxFlag: TaxFlag) {
+  function applyTaxFlagWithCalculation(taxFlag: TaxFlag) {
     setForm(current => {
       const receiptDetails = current.receiptDetails.map(item =>
-        withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag, category2), taxFlag, category2)
+        convertTaxFlagWithCalculation(normalizeReceiptItem(item), current.taxFlag, taxFlag, category2)
       );
       return {
         ...current,
         taxFlag,
-        receiptDetails
+        receiptDetails,
+        totalPrice: sumDetailPrices(receiptDetails)
       };
     });
     setPendingTaxFlag(null);
   }
 
-  function applyTaxFlagKeepingAmounts(taxFlag: TaxFlag) {
+  function applyTaxFlagAsEntered(taxFlag: TaxFlag) {
     setForm(current => {
+      // 2026-09-11 Codex: 表示中の単価を新しい税区分の入力額として扱い、税込合計を再計算する。
       const receiptDetails = current.receiptDetails.map(item =>
-        withTaxFlagKeepingAmounts(normalizeReceiptItem(item), taxFlag, category2)
+        withTaxBreakdown(normalizeReceiptItem(item), taxFlag, category2)
       );
       return {
         ...current,
         taxFlag,
-        receiptDetails
+        receiptDetails,
+        totalPrice: sumDetailPrices(receiptDetails)
       };
     });
     setPendingTaxFlag(null);
@@ -557,23 +560,35 @@ export function ReceiptForm({
 
       {pendingTaxFlag && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tax-change-title">
-          <section className="panel receipt-confirm-modal">
+          <section className="panel receipt-confirm-modal receipt-tax-modal">
             <div className="receipt-confirm-icon"><WandSparkles size={21} /></div>
-            <div>
+            <div className="receipt-confirm-body">
               <h3 id="tax-change-title">税区分を変更しますか？</h3>
               <p>
-                「単価は{pendingTaxFlag === "0" ? "税抜" : "税込"}」に変更します。
-                現在の税込金額を維持するか、入力済みの単価から再計算するか選んでください。
+                「単価は{pendingTaxFlag === "0" ? "税抜" : "税込"}」へ変更します。
+                金額の扱い方を選んでください。
               </p>
+            </div>
+            <div className="tax-conversion-options">
+              <button type="button" className="tax-conversion-option" onClick={() => applyTaxFlagAsEntered(pendingTaxFlag)}>
+                <span className="tax-conversion-option__icon"><Equal size={19} /></span>
+                <span className="tax-conversion-option__content">
+                  <strong>そのまま</strong>
+                  <small>現在の単価を、新しい税区分の単価としてそのまま使用します。</small>
+                  <code>{taxConversionFormula(pendingTaxFlag, "as-entered")}</code>
+                </span>
+              </button>
+              <button type="button" className="tax-conversion-option is-primary" onClick={() => applyTaxFlagWithCalculation(pendingTaxFlag)}>
+                <span className="tax-conversion-option__icon"><Calculator size={19} /></span>
+                <span className="tax-conversion-option__content">
+                  <strong>計算</strong>
+                  <small>税率で単価と値引額を換算し、現在の税込金額を維持します。</small>
+                  <code>{taxConversionFormula(pendingTaxFlag, "calculate")}</code>
+                </span>
+              </button>
             </div>
             <div className="receipt-confirm-actions">
               <button type="button" className="command-button" onClick={() => setPendingTaxFlag(null)}>キャンセル</button>
-              <button type="button" className="command-button" onClick={() => applyTaxFlagKeepingAmounts(pendingTaxFlag)}>
-                金額はそのまま
-              </button>
-              <button type="button" className="command-button command-button--primary" onClick={() => applyTaxFlag(pendingTaxFlag)}>
-                再計算して変更
-              </button>
             </div>
           </section>
         </div>
@@ -703,29 +718,45 @@ function withIncludedTotalAnchor(item: ReceiptItem, taxFlag: TaxFlag, category2:
   };
 }
 
-function withTaxFlagKeepingAmounts(item: ReceiptItem, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
-  const taxRate = taxRateForItem(item, category2);
-  const taxMultiplier = 1 + taxRate;
-  const quantity = parseNumber(item.quantity) || 1;
-  const includedTotal = parseNumber(item.taxIncludedTotalPrice ?? item.totalPrice);
-  const includedUnit = parseNumber(
-    item.taxIncludedUnitPrice
-      ?? (quantity ? roundMoney(includedTotal / quantity) : item.unitPrice)
-      ?? item.unitPrice
-  );
-  const excludedUnit = taxMultiplier ? roundMoney(includedUnit / taxMultiplier) : includedUnit;
-  const excludedTotal = taxMultiplier ? roundMoney(includedTotal / taxMultiplier) : includedTotal;
-
-  return {
+function convertTaxFlagWithCalculation(
+  item: ReceiptItem,
+  currentTaxFlag: TaxFlag,
+  nextTaxFlag: TaxFlag,
+  category2: Category2[]
+): ReceiptItem {
+  // 2026-09-11 Codex: 現在の税込価値を維持するため、単価と値引額を同じ税率で換算する。
+  const taxMultiplier = 1 + taxRateForItem(item, category2);
+  const includedTotal = parseNumber(item.totalPrice);
+  const conversionRate = currentTaxFlag === "1" && nextTaxFlag === "0"
+    ? 1 / taxMultiplier
+    : taxMultiplier;
+  const converted = withTaxBreakdown({
     ...item,
-    taxRate,
-    unitPrice: taxFlag === "0" ? excludedUnit : includedUnit,
+    unitPrice: roundMoney(parseNumber(item.unitPrice) * conversionRate),
+    discount: roundMoney(parseNumber(item.discount) * conversionRate)
+  }, nextTaxFlag, category2);
+  // 2026-09-11 Codex: 小数単価の丸め差が出ても、変更前の税込合計は厳密に維持する。
+  return {
+    ...converted,
     totalPrice: includedTotal,
-    taxExcludedUnitPrice: excludedUnit,
-    taxExcludedTotalPrice: excludedTotal,
-    taxIncludedUnitPrice: includedUnit,
+    taxExcludedTotalPrice: taxMultiplier ? roundMoney(includedTotal / taxMultiplier) : includedTotal,
     taxIncludedTotalPrice: includedTotal
   };
+}
+
+function sumDetailPrices(items: ReceiptItem[]): number {
+  return roundMoney(items.reduce((sum, item) => sum + parseNumber(item.totalPrice), 0));
+}
+
+function taxConversionFormula(taxFlag: TaxFlag, mode: "as-entered" | "calculate"): string {
+  if (mode === "calculate") {
+    return taxFlag === "0"
+      ? "税抜単価・値引額 ＝ 現在の税込単価・値引額 ÷（1 ＋ 税率）／ 税込金額は変更なし"
+      : "税込単価・値引額 ＝ 現在の税抜単価・値引額 ×（1 ＋ 税率）／ 税込金額は変更なし";
+  }
+  return taxFlag === "0"
+    ? "変更前の税込金額 ＝　変更後の税抜金額"
+    : "変更前の税込金額 ＝　変更後の税込金額";
 }
 
 function withManualTotal(item: ReceiptItem, totalPrice: number, taxFlag: TaxFlag, category2: Category2[]): ReceiptItem {
