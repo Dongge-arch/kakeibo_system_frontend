@@ -98,10 +98,11 @@ type LayoutProps = {
   language: Language;
   onNavigate: (page: PageKey) => void;
   onLogout: () => void;
+  onPortal: () => void;
   children: ReactNode;
 };
 
-export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled, language, onNavigate, onLogout, children }: LayoutProps) {
+export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled, language, onNavigate, onLogout, onPortal, children }: LayoutProps) {
   const loggedIn = !!session;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -218,6 +219,7 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
             <h1>{title}</h1>
           </div>
           <div className="topbar-actions">
+            <button type="button" className="layout-portal-link" onClick={onPortal}><House size={17} /> ポータル</button>
             <button type="button" className="user-chip" onClick={() => navigate("settings")}>
               {session?.avatarImage ? <img className="user-chip-avatar" src={session.avatarImage} alt="" /> : <GalleryVerticalEnd size={17} />}
               <span>{session?.nickname || t(language, "guest")}</span>

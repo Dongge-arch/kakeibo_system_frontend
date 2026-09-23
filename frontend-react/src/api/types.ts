@@ -162,6 +162,7 @@ export type AutoLinkagePlace = {
   lastLoginStatus?: string;
   lastLoginDate?: string;
   lastLoginTime?: string;
+  executionLocation?: "aws" | "server" | "client";
 };
 
 export type AutoLinkageRunResult = {

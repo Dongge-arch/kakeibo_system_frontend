@@ -192,6 +192,7 @@ const SERVICE_DEFINITIONS: LinkageService[] = [
     description: "Amazonの注文履歴を取り込みます。",
     supportStatus: "supported",
     automationMode: "manual",
+    executionLocation: "aws",
     icon: "shopping",
     configured: false,
     enabled: false
@@ -213,13 +214,44 @@ const SERVICE_DEFINITIONS: LinkageService[] = [
   {
     connectionType: "NITORI",
     group: "shopping",
-    displayName: "Nitori",
+    displayName: "ニトリ",
     supplierName: "株式会社ニトリ",
-    invoiceRegistrationNumber: "",
-    historyName: "Nitori購入履歴",
-    description: "Nitoriの購入履歴連携は準備中です。",
-    supportStatus: "planned",
-    automationMode: "planned",
+    invoiceRegistrationNumber: "NITORI",
+    historyName: "ニトリ注文履歴",
+    description: "ニトリの注文履歴をArmbianサーバーから取り込みます。",
+    supportStatus: "supported",
+    automationMode: "automatic",
+    executionLocation: "server",
+    icon: "shopping",
+    configured: false,
+    enabled: false
+  },
+  {
+    connectionType: "CAINZ",
+    group: "shopping",
+    displayName: "CAINZ",
+    supplierName: "株式会社カインズ",
+    invoiceRegistrationNumber: "CAINZ",
+    historyName: "CAINZ注文履歴",
+    description: "CAINZの注文履歴をArmbianサーバーから取り込みます。",
+    supportStatus: "supported",
+    automationMode: "automatic",
+    executionLocation: "server",
+    icon: "shopping",
+    configured: false,
+    enabled: false
+  },
+  {
+    connectionType: "MUJI",
+    group: "shopping",
+    displayName: "無印良品",
+    supplierName: "株式会社良品計画",
+    invoiceRegistrationNumber: "MUJI",
+    historyName: "無印良品注文履歴",
+    description: "無印良品の注文履歴をArmbianサーバーから取り込みます。",
+    supportStatus: "supported",
+    automationMode: "automatic",
+    executionLocation: "server",
     icon: "shopping",
     configured: false,
     enabled: false
@@ -262,6 +294,7 @@ const SERVICE_DEFINITIONS: LinkageService[] = [
     description: "ベルクの購入履歴を取り込みます。",
     supportStatus: "supported",
     automationMode: "automatic",
+    executionLocation: "aws",
     icon: "store",
     configured: false,
     enabled: false
@@ -276,6 +309,7 @@ const SERVICE_DEFINITIONS: LinkageService[] = [
     description: "ETC利用照会サービスの利用明細を取り込みます。",
     supportStatus: "supported",
     automationMode: "automatic",
+    executionLocation: "aws",
     icon: "etc",
     configured: false,
     enabled: false
@@ -634,7 +668,7 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
             <button
               type="button"
               className="command-button linkage-run-button"
-              disabled={busy || !featureEnabled || !isSupportedService(selected) || !selected.configured}
+              disabled={busy || !featureEnabled || !isSupportedService(selected) || !selected.configured || selected.executionLocation === "server"}
               onClick={runManualLinkage}
             >
               <Play size={17} />{busy ? "取り込み中..." : `${selected.displayName}履歴を取り込む`}
@@ -644,6 +678,9 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
             )}
             {selected.supportStatus !== "planned" && !selected.configured && (
               <p className="linkage-disabled-reason">ログイン情報を保存すると実行できます。</p>
+            )}
+            {selected.supportStatus !== "planned" && selected.executionLocation === "server" && (
+              <p className="linkage-disabled-reason">このサービスはAWS IP制限を避けるため、Armbianサーバーから毎日自動実行します。</p>
             )}
             {runResult?.status === "CAPTCHA_REQUIRED" && runResult.captchaImage && (
               <div className="suica-captcha-panel">
@@ -722,7 +759,11 @@ export function AutoLinkagePage({ notify, featureEnabled, onOpenSettings }: Prop
             <div className="linkage-service-copy">
               <strong>{place.displayName}</strong>
               <span><CalendarClock size={15} /> 毎日 午前0時に実行</span>
-              <small>EventBridgeから自動入力バッチを起動します。</small>
+              <small>
+                {place.executionLocation === "server"
+                  ? "Armbianサーバー上のローカルバッチから実行します。"
+                  : "AWS EventBridgeからLambdaバッチを起動します。"}
+              </small>
             </div>
             <label className="linkage-switch">
               <input

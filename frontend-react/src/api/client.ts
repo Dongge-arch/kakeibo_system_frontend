@@ -18,6 +18,7 @@
   ReceiptSearchCondition,
   SalaryCategory
 } from "./types";
+import type { Baby, BabyDay, BabyEvent, Family, Recipe, ShoppingPlan, PlanItem } from "./homeTypes";
 
 type RuntimeFrontendConfig = {
   apiBaseUrl?: string;
@@ -324,6 +325,30 @@ export function storeSession(session: AuthSession | null): void {
  */
 export const api = {
   // 画面で使うAPIを機能ごとにまとめる薄いクライアント。
+  meal: {
+    recipes: () => get<Recipe[]>("/meal/recipes"),
+    saveRecipe: (recipe: Recipe) => post<{ recipeId: string }>("/meal/recipes", { recipe }),
+    deleteRecipe: (recipeId: string) => remove<{ ok: boolean }>(`/meal/recipes/${encodeURIComponent(recipeId)}`),
+    plan: () => get<ShoppingPlan>("/meal/plan"),
+    savePlan: (items: PlanItem[], checked: string[]) => put<ShoppingPlan>("/meal/plan", { items, checked })
+  },
+  childcare: {
+    families: () => get<Family[]>("/childcare/families"),
+    createFamily: (name: string) => post<{ familyId: string }>("/childcare/families", { name }),
+    joinFamily: (code: string) => post<{ familyId: string }>("/childcare/families/join", { code }),
+    invite: (familyId: string) => post<{ code: string; expiresAt: string }>(`/childcare/families/${encodeURIComponent(familyId)}/invites`, {}),
+    removeMember: (familyId: string, userId: string) => remove<{ ok: boolean }>(`/childcare/families/${encodeURIComponent(familyId)}/members/${encodeURIComponent(userId)}`),
+    babies: (familyId: string) => get<Baby[]>(`/childcare/families/${encodeURIComponent(familyId)}/babies`),
+    saveBaby: (baby: Baby) => baby.babyId
+      ? put<{ babyId: string }>(`/childcare/babies/${encodeURIComponent(baby.babyId)}`, { baby })
+      : post<{ babyId: string }>("/childcare/babies", { baby }),
+    deleteBaby: (babyId: string) => remove<{ ok: boolean }>(`/childcare/babies/${encodeURIComponent(babyId)}`),
+    day: (babyId: string, day: string) => get<BabyDay>(`/childcare/babies/${encodeURIComponent(babyId)}/events?day=${encodeURIComponent(day)}`),
+    saveEvent: (event: BabyEvent) => event.eventId
+      ? put<{ eventId: string }>(`/childcare/babies/${encodeURIComponent(event.babyId)}/events/${encodeURIComponent(event.eventId)}`, { event })
+      : post<{ eventId: string }>(`/childcare/babies/${encodeURIComponent(event.babyId)}/events`, { event }),
+    deleteEvent: (babyId: string, eventId: string) => remove<{ ok: boolean }>(`/childcare/babies/${encodeURIComponent(babyId)}/events/${encodeURIComponent(eventId)}`)
+  },
   auth: {
     login: (email: string, password: string) => post<AuthSession>("/user/login", { email, password }),
     register: (email: string, password: string) =>

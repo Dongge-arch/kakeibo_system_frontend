@@ -21,7 +21,13 @@ import { RecurringExpensePage } from "./pages/RecurringExpensePage";
 import { ReceiptsPage } from "./pages/ReceiptsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AutoLinkagePage } from "./pages/AutoLinkagePage";
+import { AccountGate } from "./components/AccountGate";
+import { ModuleShell } from "./components/ModuleShell";
+import { ChildcarePage } from "./pages/ChildcarePage";
+import { MealPage } from "./pages/MealPage";
+import { PortalPage, type PortalModule } from "./pages/PortalPage";
 import "./styles/app.css";
+import "./styles/modules.css";
 
 type ToastState = {
   message: string;
@@ -43,6 +49,35 @@ const defaultSettings: AppSettings = {
 
 export default function App() {
   const auth = useAuth();
+  const [module, setModule] = useState<PortalModule | "portal" | "login">("portal");
+  const [moduleToast, setModuleToast] = useState<ToastState | null>(null);
+  const notifyModule = useCallback((message: string, tone: ToastState["tone"] = "info") => {
+    setModuleToast({ message, tone });
+    window.setTimeout(() => setModuleToast(current => current?.message === message ? null : current), 3200);
+  }, []);
+
+  if (module === "portal") {
+    return <PortalPage session={auth.session} onOpen={setModule} onLogin={() => setModule("login")} onLogout={auth.logout} />;
+  }
+  if (module === "login") {
+    return <>
+      <header className="module-header"><button type="button" className="module-back" onClick={() => setModule("portal")}>← ポータル</button><strong>ログイン</strong></header>
+      <AccountGate login={auth.login} register={auth.register} notify={notifyModule} />
+      {moduleToast && <Toast message={moduleToast.message} tone={moduleToast.tone} onClose={() => setModuleToast(null)} />}
+    </>;
+  }
+  if (module === "meal" || module === "childcare") {
+    return <ModuleShell module={module} onPortal={() => setModule("portal")}>
+      {auth.session
+        ? module === "meal" ? <MealPage notify={notifyModule} /> : <ChildcarePage userId={auth.session.userId} notify={notifyModule} />
+        : <AccountGate login={auth.login} register={auth.register} notify={notifyModule} />}
+      {moduleToast && <Toast message={moduleToast.message} tone={moduleToast.tone} onClose={() => setModuleToast(null)} />}
+    </ModuleShell>;
+  }
+  return <KakeiboApp auth={auth} onPortal={() => setModule("portal")} />;
+}
+
+function KakeiboApp({ auth, onPortal }: { auth: ReturnType<typeof useAuth>; onPortal: () => void }) {
   const master = useMasterData(auth.session?.userId || "");
   const [devicePage, setDevicePage] = useState<DevicePage>(() => detectDevicePage());
   const [page, setPage] = useState<PageKey>(() => auth.session ? "dashboard" : "settings");
@@ -311,6 +346,7 @@ export default function App() {
         language={settings.language || "ja"}
         onNavigate={setPage}
         onLogout={auth.logout}
+        onPortal={onPortal}
       >
         {(loading || master.loading) && auth.session && (
           <div className="loading-strip" role="status" aria-live="polite">

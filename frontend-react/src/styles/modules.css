@@ -1,0 +1,190 @@
+.layout-portal-link {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  min-height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+}
+
+.portal-page,
+.module-shell {
+  min-height: 100vh;
+  background: #f4f7f5;
+  color: #192722;
+}
+
+.portal-header,
+.module-header {
+  min-height: 76px;
+  padding: 16px clamp(18px, 4vw, 56px);
+  border-bottom: 1px solid #d8e2dd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+}
+
+.portal-brand,
+.portal-account,
+.module-title,
+.module-brand,
+.module-back,
+.module-heading,
+.module-subheading,
+.module-action-row,
+.portal-heading,
+.baby-day-header,
+.baby-day-header label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-brand { font-size: 19px; font-weight: 800; color: #1b6659; }
+.portal-account { color: #53655e; }
+.portal-account button,
+.invite-code button,
+.family-member-list button { border: 0; background: transparent; color: #1b6659; display: inline-flex; align-items: center; gap: 7px; }
+.portal-content { max-width: 1060px; margin: 0 auto; padding: clamp(32px, 6vw, 70px) 22px; }
+.portal-heading { margin-bottom: 25px; color: #1b6659; }
+.portal-heading h1 { margin: 0; font-size: 26px; }
+.portal-modules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.portal-module {
+  min-width: 0;
+  min-height: 200px;
+  padding: 24px;
+  border: 1px solid #d8e2dd;
+  border-radius: 8px;
+  background: #fff;
+  color: #192722;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(25, 39, 34, 0.04);
+}
+.portal-module:hover { border-color: #62a08f; transform: translateY(-2px); }
+.portal-module > svg { align-self: flex-end; margin-top: auto; color: #52675f; }
+.portal-module-icon { width: 54px; height: 54px; border-radius: 8px; display: grid; place-items: center; margin-bottom: 20px; }
+.portal-module--money .portal-module-icon { background: #dcece8; color: #176d60; }
+.portal-module--meal .portal-module-icon { background: #f7e3db; color: #a34a33; }
+.portal-module--baby .portal-module-icon { background: #e8eddb; color: #597932; }
+.portal-module-label strong { display: block; font-size: 23px; line-height: 1.2; }
+.portal-module-label small { display: block; margin-top: 8px; color: #61716a; font-size: 13px; }
+
+.module-shell { background: #f7f9f8; }
+.module-shell--meal { --module-accent: #a34a33; --module-pale: #f9eae5; }
+.module-shell--childcare { --module-accent: #2d705d; --module-pale: #e2efe9; }
+.module-back { border: 0; padding: 8px; background: transparent; color: #405e51; }
+.module-title { color: var(--module-accent); font-size: 20px; }
+.module-brand { font-size: 12px; color: #74867c; }
+.module-main { max-width: 1280px; margin: 0 auto; padding: 24px clamp(16px, 3vw, 40px) 60px; }
+.module-workspace { display: grid; gap: 18px; }
+.module-tabs { display: flex; gap: 4px; border-bottom: 1px solid #d8e2dd; overflow-x: auto; }
+.module-tabs button { min-height: 46px; padding: 0 17px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #63766d; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.module-tabs button.is-active { color: var(--module-accent); border-bottom-color: var(--module-accent); font-weight: 800; }
+.module-section { background: #fff; padding: 20px 0; border-bottom: 1px solid #d8e2dd; min-width: 0; }
+.module-heading { justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; color: var(--module-accent); }
+.module-heading h1, .module-heading h2, .module-subheading h3 { margin: 0; font-size: 20px; color: #192722; }
+.module-heading > span { font-size: 12px; color: #61716a; margin-left: auto; }
+.module-subheading { justify-content: space-between; margin: 22px 0 10px; }
+.module-subheading h3 { font-size: 16px; }
+.module-empty { color: #6e8076; padding: 20px 0; margin: 0; }
+.module-action-row { flex-wrap: wrap; margin: 12px 0; }
+.module-action-row > input, .module-action-row > select { width: auto; flex: 1 1 180px; min-width: 0; }
+.module-action-row .command-button { flex: 0 0 auto; }
+.module-form { display: grid; gap: 12px; }
+.module-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.module-span { grid-column: 1 / -1; }
+.module-shell input, .module-shell select, .module-shell textarea,
+.account-gate input { border-color: #cbd8d1; background: #fff; color: #192722; }
+.module-shell .command-button--primary, .account-gate .command-button--primary { background: var(--module-accent, #1b6659); color: #fff; }
+.icon-command { min-width: 38px; min-height: 38px; border: 0; background: transparent; color: #62766c; display: grid; place-items: center; }
+.icon-command:hover { color: var(--module-accent); background: var(--module-pale); }
+.icon-command:disabled { opacity: 0.3; }
+.danger-text { color: #b6463b; }
+.text-command { border: 0; background: transparent; color: #1b6659; padding: 8px 0; }
+.account-gate { max-width: 440px; margin: 40px auto; padding: 24px; background: #fff; border: 1px solid #d8e2dd; border-radius: 8px; }
+
+.meal-plan-layout, .recipe-layout, .baby-log-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.meal-plan-list, .recipe-list, .shopping-list, .baby-timeline { display: grid; }
+.meal-plan-row { display: grid; grid-template-columns: minmax(130px, 1fr) 94px 94px 38px; gap: 10px; align-items: end; border-bottom: 1px solid #e6eeea; padding: 12px 0; }
+.meal-plan-row > strong { align-self: center; overflow-wrap: anywhere; }
+.meal-plan-row label { display: grid; gap: 4px; font-size: 12px; color: #64786c; }
+.meal-plan-row input { padding: 0 8px; }
+.shopping-list label { min-height: 48px; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 12px; border-bottom: 1px solid #e6eeea; }
+.shopping-list input { width: 18px; height: 18px; min-height: 18px; accent-color: #3d755a; }
+.shopping-list .is-checked span { text-decoration: line-through; color: #819289; }
+.recipe-row { min-height: 64px; padding: 10px 0; border-bottom: 1px solid #e6eeea; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.recipe-row > div:first-child { display: grid; gap: 3px; }
+.recipe-row strong { font-size: 15px; }
+.recipe-row span { font-size: 12px; color: #718177; }
+.ingredient-edit-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px 100px 38px; gap: 8px; margin: 8px 0; }
+.step-edit-row { display: grid; grid-template-columns: 25px minmax(0, 1fr) 38px; align-items: start; gap: 8px; margin: 8px 0; }
+.step-edit-row > span { padding-top: 10px; color: var(--module-accent); font-weight: 800; }
+.cook-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 30px; }
+.cook-media iframe, .cook-media video { width: 100%; aspect-ratio: 16 / 9; border: 0; background: #17221c; }
+.cook-media a { min-height: 120px; color: var(--module-accent); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.cook-steps h2 { margin: 0 0 4px; }
+.cook-steps > span { color: #6e8076; }
+.cook-steps h3 { margin: 20px 0 10px; font-size: 15px; }
+.cook-steps ul { list-style: none; padding: 0; margin: 0; }
+.cook-steps li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e6eeea; }
+.cook-step { width: 100%; min-height: 58px; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; text-align: left; border: 0; border-bottom: 1px solid #e6eeea; background: transparent; color: #192722; padding: 12px 0; }
+.cook-step > span:first-child { width: 29px; height: 29px; display: grid; place-items: center; background: var(--module-pale); color: var(--module-accent); border-radius: 50%; font-weight: 800; }
+.cook-step.is-done > span:last-child { color: #7f9086; text-decoration: line-through; }
+
+.family-section, .baby-section { padding-left: 4px; padding-right: 4px; }
+.family-details { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 15px; }
+.family-member-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.family-member-list > span { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; border: 1px solid #d8e2dd; border-radius: 6px; padding: 0 8px; }
+.family-member-list small { color: #7c8b82; }
+.invite-code { width: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.invite-code code { padding: 8px; background: #e2efe9; overflow-wrap: anywhere; }
+.invite-code small { color: #6d7c73; }
+.baby-tab { min-height: 39px; border: 1px solid #c9d8cf; border-radius: 6px; padding: 0 14px; background: #fff; color: #375b4d; }
+.baby-tab.is-active { background: #dceee6; border-color: #63a087; font-weight: 800; }
+.baby-day-header { justify-content: space-between; flex-wrap: wrap; }
+.baby-day-header h2 { margin: 0; font-size: 24px; }
+.baby-day-header label { color: #507360; }
+.baby-day-header input { width: auto; }
+.baby-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #d8e2dd; border: 1px solid #d8e2dd; }
+.baby-summary > div { background: #fff; min-height: 100px; padding: 14px; display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-content: start; }
+.baby-summary svg { color: #2d705d; }
+.baby-summary span { color: #697e70; font-size: 12px; }
+.baby-summary strong { grid-column: 1 / -1; font-size: 20px; margin-top: 8px; }
+.baby-summary small { grid-column: 1 / -1; color: #6d8175; }
+.event-type-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.event-type-grid button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #d8e2dd; border-radius: 6px; background: #fff; color: #536c5e; }
+.event-type-grid button.is-active { border-color: #58a182; background: #e2efe9; color: #236c4e; font-weight: 800; }
+.baby-event { min-height: 68px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 38px 38px; align-items: start; gap: 8px; border-bottom: 1px solid #e6eeea; padding: 10px 0; }
+.baby-event-icon { color: #2d705d; width: 30px; height: 30px; display: grid; place-items: center; background: #e2efe9; border-radius: 6px; }
+.baby-event time { font-size: 12px; color: #6d8175; margin-right: 9px; }
+.baby-event strong { font-size: 14px; }
+.baby-event p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 800px) {
+  .portal-modules, .meal-plan-layout, .recipe-layout, .baby-log-layout, .cook-layout { grid-template-columns: 1fr; }
+  .portal-module { min-height: 112px; flex-direction: row; align-items: center; gap: 18px; }
+  .portal-module-icon { margin: 0; flex: 0 0 54px; }
+  .portal-module > svg { margin: 0 0 0 auto; }
+  .module-brand { display: none; }
+  .baby-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .layout-portal-link { min-width: 46px; font-size: 0; justify-content: center; }
+}
+@media (max-width: 520px) {
+  .portal-header, .module-header { padding: 12px 15px; }
+  .portal-account span { display: none; }
+  .module-main { padding: 14px 14px 50px; }
+  .module-form-grid { grid-template-columns: 1fr; }
+  .module-span { grid-column: auto; }
+  .meal-plan-row { grid-template-columns: minmax(0, 1fr) 68px 68px 32px; gap: 5px; }
+  .ingredient-edit-row { grid-template-columns: minmax(0, 1fr) 60px 65px 32px; gap: 4px; }
+  .ingredient-edit-row input { padding: 0 5px; }
+  .event-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
