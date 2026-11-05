@@ -440,7 +440,7 @@ export function ReceiptsPage({ category1, category2, onChanged, notify }: Receip
       </section>
 
       {advancedOpen && (
-        <div className="drawer-layer">
+        <div className="drawer-layer receipt-filter-layer">
           <div className="drawer receipt-filter-drawer">
             <div className="drawer-head">
               <div>

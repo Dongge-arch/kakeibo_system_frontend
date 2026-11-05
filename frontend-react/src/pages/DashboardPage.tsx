@@ -22,7 +22,7 @@ import {
   Trash2,
   WalletCards
 } from "lucide-react";
-import type { PointerEvent, ReactNode } from "react";
+import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { buildRecurringReservations } from "../api/budgetReservations";
@@ -133,6 +133,54 @@ const widgetMeta = {
   calendar: { title: "カレンダー", description: "日ごとの収支", defaultSize: "large" }
 } as Record<DashboardWidgetId, { title: string; description: string; defaultSize: DashboardWidgetSize }>;
 
+const desktopWidgetSpans: Record<DashboardWidgetSize, number> = {
+  small: 3,
+  medium: 6,
+  wide: 8,
+  large: 12
+};
+
+const mobileWidgetSpans: Record<DashboardWidgetSize, number> = {
+  small: 6,
+  medium: 12,
+  wide: 12,
+  large: 12
+};
+
+function buildFilledWidgetSpans(
+  items: DashboardLayoutItem[],
+  spanBySize: Record<DashboardWidgetSize, number>
+): Map<DashboardWidgetId, number> {
+  const spans = new Map<DashboardWidgetId, number>();
+  let rowIds: DashboardWidgetId[] = [];
+  let usedColumns = 0;
+
+  const completeRow = () => {
+    if (rowIds.length > 0 && usedColumns < 12) {
+      const lastId = rowIds[rowIds.length - 1];
+      spans.set(lastId, (spans.get(lastId) || 12) + (12 - usedColumns));
+    }
+    rowIds = [];
+    usedColumns = 0;
+  };
+
+  items.forEach(item => {
+    const size = item.size || widgetMeta[item.id]?.defaultSize || "medium";
+    const span = spanBySize[size];
+
+    if (usedColumns > 0 && usedColumns + span > 12) completeRow();
+
+    spans.set(item.id, span);
+    rowIds.push(item.id);
+    usedColumns += span;
+
+    if (usedColumns === 12) completeRow();
+  });
+
+  completeRow();
+  return spans;
+}
+
 export function DashboardPage({
   month,
   receipts,
@@ -190,6 +238,11 @@ export function DashboardPage({
   const selectedYear = Number(month.slice(0, 4)) || new Date().getFullYear();
   const selectedMonth = Number(month.slice(5, 7)) || new Date().getMonth() + 1;
   const visibleLayout = useMemo(() => layout.filter(item => budgetEnabled || (item.id !== "budget" && item.id !== "budgetUsage")), [layout, budgetEnabled]);
+  // 2026-11-06 Codex: 保存済みの順序を維持したまま各行の余白を末尾ウィジェットへ配分する。
+  const widgetRowSpans = useMemo(() => ({
+    desktop: buildFilledWidgetSpans(visibleLayout, desktopWidgetSpans),
+    mobile: buildFilledWidgetSpans(visibleLayout, mobileWidgetSpans)
+  }), [visibleLayout]);
   const visibleIds = new Set(visibleLayout.map(item => item.id));
   const hiddenWidgets = availableLayout.filter(item => {
     if ((item.id === "budget" || item.id === "budgetUsage") && !budgetEnabled) return false;
@@ -442,6 +495,10 @@ export function DashboardPage({
             key={item.id}
             data-widget-id={item.id}
             className={`dashboard-widget dashboard-widget--${item.size} ${item.id === "clock" ? "dashboard-widget--clock" : ""} ${draggingId === item.id ? "is-dragging" : ""}`}
+            style={{
+              "--dashboard-desktop-span": widgetRowSpans.desktop.get(item.id) || 12,
+              "--dashboard-mobile-span": widgetRowSpans.mobile.get(item.id) || 12
+            } as CSSProperties}
             draggable={editMode}
             onDragStart={() => editMode && beginDrag(item.id)}
             onDragEnd={endDrag}
@@ -624,13 +681,45 @@ function CalendarWidget({ month, receipts, incomes }: { month: string; receipts:
         {cells.map(cell => (
           <div className={`calendar-cell ${cell.inMonth ? "" : "is-muted"}`} key={cell.date}>
             <strong>{cell.day}</strong>
-            <span className="calendar-income">{cell.income > 0 ? `+${yen(cell.income)}` : ""}</span>
-            <span className="calendar-expense">{cell.expense > 0 ? `-${yen(cell.expense)}` : ""}</span>
+            <span
+              className="calendar-income"
+              title={cell.income > 0 ? `収入 +${yen(cell.income)}` : undefined}
+              aria-label={cell.income > 0 ? `収入、プラス${yen(cell.income)}` : undefined}
+            >
+              {cell.income > 0 && <>
+                <span className="calendar-amount-full" aria-hidden="true">+{yen(cell.income)}</span>
+                <span className="calendar-amount-compact" aria-hidden="true">+{compactCalendarAmount(cell.income)}</span>
+              </>}
+            </span>
+            <span
+              className="calendar-expense"
+              title={cell.expense > 0 ? `支出 -${yen(cell.expense)}` : undefined}
+              aria-label={cell.expense > 0 ? `支出、マイナス${yen(cell.expense)}` : undefined}
+            >
+              {cell.expense > 0 && <>
+                <span className="calendar-amount-full" aria-hidden="true">-{yen(cell.expense)}</span>
+                <span className="calendar-amount-compact" aria-hidden="true">-{compactCalendarAmount(cell.expense)}</span>
+              </>}
+            </span>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+function compactCalendarAmount(value: number): string {
+  // 2026-11-06 Codex: 狭い日付セルでは桁を省略し、金額を改行せず比較できる表記にする。
+  const amount = Math.abs(Number(value || 0));
+  if (amount >= 100_000_000) return `${compactUnit(amount / 100_000_000)}億`;
+  if (amount >= 10_000) return `${compactUnit(amount / 10_000)}万`;
+  return Math.round(amount).toString();
+}
+
+function compactUnit(value: number): string {
+  return new Intl.NumberFormat("ja-JP", {
+    maximumFractionDigits: value >= 100 ? 0 : 1,
+  }).format(value);
 }
 
 function buildDayFlow(receipts: ReceiptSummary[], incomes: Income[]) {

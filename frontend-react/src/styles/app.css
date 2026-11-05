@@ -996,6 +996,10 @@ img {
   overflow-wrap: anywhere;
 }
 
+.calendar-amount-compact {
+  display: none;
+}
+
 .calendar-income {
   color: var(--teal);
 }
@@ -5848,5 +5852,275 @@ textarea:focus-visible,
   :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget--wide,
   :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget--large {
     grid-column: span 12;
+  }
+}
+
+/* 2026-11-06 Codex: スマートフォン縦画面だけ金額表示と小型ウィジェットの配分を最適化する。 */
+@media (max-width: 720px) and (orientation: portrait) {
+  .dashboard-widget,
+  .dashboard-widget-body,
+  .metric-card,
+  .cash-flow-widget,
+  .budget-widget,
+  .mini-receipt,
+  .bar-row,
+  .token-grid > div {
+    min-width: 0;
+  }
+
+  .dashboard-widget .metric-card strong,
+  .budget-widget-value strong,
+  .budget-mini-list strong,
+  .cash-flow-widget strong,
+  .mini-receipt b,
+  .bar-row strong,
+  .token-grid strong {
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  .dashboard-widget .metric-card strong,
+  .budget-widget-value strong {
+    font-size: clamp(16px, 6.2cqi, 23px);
+  }
+
+  .cash-flow-widget {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+  }
+
+  .cash-flow-widget > div {
+    min-height: 84px;
+    padding: 9px 10px;
+  }
+
+  .cash-flow-widget > div:last-child {
+    grid-column: 1 / -1;
+    min-height: 54px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: center;
+    align-items: center;
+  }
+
+  .cash-flow-widget > div:last-child strong {
+    justify-self: end;
+  }
+
+  .cash-flow-widget strong {
+    font-size: clamp(15px, 5.2cqi, 20px);
+  }
+
+  [data-widget-id="calendar"] .dashboard-widget-body {
+    padding: 9px 6px 11px;
+  }
+
+  .calendar-widget {
+    gap: 7px;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 3px;
+  }
+
+  .calendar-weekdays span {
+    font-size: 11px;
+  }
+
+  .calendar-cell {
+    min-height: 60px;
+    border-radius: 6px;
+    padding: 4px 3px;
+    gap: 1px;
+  }
+
+  .calendar-cell strong {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .calendar-income,
+  .calendar-expense {
+    min-width: 0;
+    min-height: 11px;
+    overflow: hidden;
+    font-size: 9px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    line-height: 1.15;
+    text-align: right;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .calendar-amount-full {
+    display: none;
+  }
+
+  .calendar-amount-compact {
+    display: inline;
+  }
+
+  .mini-receipt {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .mini-receipt b,
+  .budget-mini-list strong,
+  .bar-row strong {
+    font-size: 13px;
+  }
+
+  .bar-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+  }
+
+  .bar-row > div {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .bar-row > strong {
+    justify-self: end;
+  }
+
+  .token-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .token-grid div {
+    padding: 10px;
+  }
+
+  .token-grid strong {
+    font-size: clamp(16px, 7cqi, 21px);
+  }
+}
+
+@media (max-width: 380px) and (orientation: portrait) {
+  .dashboard-widget-grid {
+    gap: 10px;
+  }
+
+  .dashboard-widget-body {
+    padding: 10px;
+  }
+
+  [data-widget-id="calendar"] .dashboard-widget-body {
+    padding-inline: 5px;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 2px;
+  }
+
+  .calendar-cell {
+    min-height: 57px;
+    padding-inline: 2px;
+  }
+
+  .calendar-income,
+  .calendar-expense {
+    font-size: 8.5px;
+  }
+}
+
+/* 2026-11-06 Codex: 表示中のウィジェットだけで各行を埋め、未使用の空白列を残さない。 */
+@media (min-width: 1181px) {
+  .dashboard-widget-grid:not(.is-editing) .dashboard-widget {
+    grid-column: span var(--dashboard-desktop-span, 12);
+  }
+}
+
+@media (max-width: 720px) {
+  :root[data-device="mobile"] .dashboard-widget-grid:not(.is-editing) .dashboard-widget,
+  :root[data-device-page="mobile"] .device-page--mobile .dashboard-widget-grid:not(.is-editing) .dashboard-widget,
+  :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget {
+    grid-column: span var(--dashboard-mobile-span, 12);
+  }
+}
+
+/* 2026-11-06 Codex: 詳細検索は編集用の全高ドロワーから分離し、内容量に合うダイアログとして表示する。 */
+.receipt-filter-layer {
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+}
+
+/* 2026-11-06 Codex: 画面遷移のtransformを解除し、固定ダイアログを常にビューポート基準で配置する。 */
+.page-stage:has(.drawer-layer),
+.page-stage:has(.modal-backdrop) {
+  animation: none;
+}
+
+.receipt-filter-drawer {
+  width: min(920px, 100%);
+  max-height: min(720px, calc(100dvh - 36px));
+  align-self: center;
+  padding: 24px;
+}
+
+.receipt-filter-drawer .receipt-search-grid--advanced {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-filter-drawer {
+  width: min(920px, calc(100vw - 64px));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-filter-drawer .receipt-search-grid--advanced {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .receipt-filter-drawer .receipt-search-grid--advanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .receipt-filter-layer {
+    align-items: flex-end;
+    padding: 12px 12px 0;
+  }
+
+  .receipt-filter-drawer {
+    width: 100%;
+    max-height: min(88dvh, 760px);
+    align-self: auto;
+    border-radius: 8px 8px 0 0;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .receipt-filter-drawer .receipt-search-grid--advanced {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-filter-drawer .drawer-head {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+
+  .receipt-filter-drawer .drawer-actions {
+    position: sticky;
+    bottom: calc(-18px - env(safe-area-inset-bottom));
+    margin: 16px -16px calc(-18px - env(safe-area-inset-bottom));
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .receipt-filter-drawer .drawer-actions .command-button {
+    flex: 1 1 0;
   }
 }
