@@ -5182,3 +5182,374 @@ textarea:focus-visible,
     border-top: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
   }
 }
+
+/* 2026-11-05 Codex: 店舗検索、予算確保、ウィジェット編集、AI撮影をモバイルでも一目で操作できる配置へ統一する。 */
+.supplier-combobox {
+  position: relative;
+  min-width: 0;
+}
+
+.supplier-combobox > svg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.supplier-combobox > input {
+  width: 100%;
+  padding-left: 38px;
+}
+
+.supplier-suggestion-list {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 330px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px;
+  background: var(--panel);
+  box-shadow: 0 18px 45px rgba(23, 26, 23, 0.18);
+}
+
+.supplier-suggestion-list button {
+  width: 100%;
+  min-height: 54px;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 9px;
+  align-items: center;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+}
+
+.supplier-suggestion-list button:hover,
+.supplier-suggestion-list button.is-active {
+  background: var(--soft);
+}
+
+.supplier-suggestion-list button span,
+.supplier-suggestion-list button strong,
+.supplier-suggestion-list button small {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplier-suggestion-list button small,
+.supplier-suggestion-list button em,
+.supplier-suggestion-empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.supplier-suggestion-empty {
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.place-filter-bar,
+.place-group-list,
+.place-category-group {
+  display: grid;
+  gap: 14px;
+}
+
+.place-filter-bar {
+  margin-bottom: 18px;
+}
+
+.place-search-box {
+  max-width: 520px;
+}
+
+.place-category-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.place-category-tabs button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  background: var(--panel);
+  font-weight: 800;
+}
+
+.place-category-tabs button span {
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--soft);
+  font-size: 11px;
+}
+
+.place-category-tabs button.is-active {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 9%, var(--panel));
+}
+
+.place-category-group > header {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.place-category-group > header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+}
+
+.place-category-group > header em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.place-summary-main small {
+  color: var(--teal);
+  font-weight: 800;
+}
+
+.total-pill--reserved {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+  background: color-mix(in srgb, var(--gold) 8%, var(--panel));
+}
+
+.budget-reservation-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.budget-reservation-summary span {
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--soft);
+  font-size: 12px;
+}
+
+.budget-reservation-summary strong {
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.budget-sub-list span small {
+  display: block;
+  margin-top: 2px;
+  color: var(--gold);
+  font-size: 11px;
+}
+
+.dashboard-widget-grid:not(.is-editing) .dashboard-widget-header {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-widget-grid.is-editing .dashboard-widget {
+  outline: 1px dashed color-mix(in srgb, var(--teal) 38%, transparent);
+}
+
+.receipt-scanner {
+  display: grid;
+  gap: 12px;
+}
+
+.scanner-status {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.scanner-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 900;
+}
+
+.scanner-status span.is-ready { color: var(--green); }
+.scanner-status span.is-live { color: var(--teal); }
+.scanner-status span.is-error { color: var(--coral); }
+
+.scanner-status em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.camera-stage.has-image img {
+  object-fit: contain;
+  background: #171816;
+}
+
+.camera-empty-state,
+.camera-permission-state {
+  position: absolute;
+  inset: 0;
+  padding: 24px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  text-align: center;
+}
+
+.camera-empty-state span,
+.camera-permission-state span {
+  max-width: 420px;
+  color: #b9b8b1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.camera-permission-state svg,
+.camera-permission-state strong {
+  color: #ffd0c9;
+}
+
+.scan-overlay {
+  width: min(76%, 440px);
+  height: 82%;
+  border: 0;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.28);
+}
+
+.scan-overlay i {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #fff;
+}
+
+.scan-overlay i:nth-child(1) { top: 0; left: 0; border-top: 3px solid; border-left: 3px solid; }
+.scan-overlay i:nth-child(2) { top: 0; right: 0; border-top: 3px solid; border-right: 3px solid; }
+.scan-overlay i:nth-child(3) { bottom: 0; left: 0; border-bottom: 3px solid; border-left: 3px solid; }
+.scan-overlay i:nth-child(4) { right: 0; bottom: 0; border-right: 3px solid; border-bottom: 3px solid; }
+
+.scanner-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scanner-camera-button {
+  min-height: 46px;
+  border: 1px solid var(--teal);
+  border-radius: 7px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  background: var(--teal);
+  font-weight: 900;
+}
+
+.scanner-camera-button.is-shutter {
+  min-width: 150px;
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+@media (max-width: 720px) {
+  .supplier-suggestion-list {
+    position: fixed;
+    top: auto;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    left: 12px;
+    right: 12px;
+    max-height: min(54vh, 420px);
+  }
+
+  .place-category-group .place-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .place-card--summary {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .place-card--summary .place-actions {
+    grid-column: 1 / -1;
+  }
+
+  .budget-reservation-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .scanner-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .camera-stage {
+    min-height: min(62vh, 520px);
+  }
+
+  .scanner-actions > * {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 1550px) and (min-width: 721px) {
+  :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .ai-page-grid,
+  .ai-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-upload-panel .camera-stage {
+    min-height: 440px;
+  }
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .form-grid--receipt {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-table-head,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-row {
+  min-width: 960px;
+  grid-template-columns:
+    minmax(160px, 1.4fr)
+    minmax(130px, 1fr)
+    minmax(130px, 1fr)
+    minmax(80px, 0.65fr)
+    minmax(90px, 0.7fr)
+    minmax(90px, 0.7fr)
+    minmax(90px, 0.7fr)
+    42px;
+}

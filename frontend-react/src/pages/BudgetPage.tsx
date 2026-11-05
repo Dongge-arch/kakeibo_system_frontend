@@ -1,19 +1,21 @@
 import { ChevronDown, ChevronRight, RefreshCw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
+import { buildRecurringReservations, monthValue } from "../api/budgetReservations";
 import { yen } from "../api/normalizers";
-import type { AppSettings, Budget, Category1, Category2 } from "../api/types";
+import type { AppSettings, Budget, Category1, Category2, RecurringExpense } from "../api/types";
 
 type BudgetPageProps = {
   category1: Category1[];
   category2: Category2[];
   budgetEnabled: boolean;
   budgetPeriod: AppSettings["budgetPeriod"];
+  recurringExpenses: RecurringExpense[];
   onChanged: () => void;
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
-export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, onChanged, notify }: BudgetPageProps) {
+export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, recurringExpenses, onChanged, notify }: BudgetPageProps) {
   const [rows, setRows] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState("");
@@ -107,7 +109,18 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
 
   const categoryRows = rows.filter(row => !row.category2);
   const total = useMemo(() => effectiveBudgetRows().reduce((sum, row) => sum + Number(row.budgetAmount || 0), 0), [rows]);
+  const reservations = useMemo(
+    () => buildRecurringReservations(recurringExpenses, budgetPeriod, monthValue(new Date())),
+    [recurringExpenses, budgetPeriod]
+  );
+  const reservedTotal = reservations.reduce((sum, row) => sum + row.amount, 0);
   const periodLabel = budgetPeriod === "week" ? "現在の期間：週予算" : "現在の期間：月予算";
+
+  function reservedFor(category1Name: string, category2Name = "") {
+    return reservations
+      .filter(row => row.category1 === category1Name && (!category2Name || row.category2 === category2Name))
+      .reduce((sum, row) => sum + row.amount, 0);
+  }
 
   if (!budgetEnabled) {
     return (
@@ -133,6 +146,7 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
         <div className="toolbar-actions">
           <div className="period-pill">{periodLabel}</div>
           <div className="total-pill"><span>合計</span><strong>{yen(total)}</strong></div>
+          <div className="total-pill total-pill--reserved"><span>定期出費を確保</span><strong>{yen(reservedTotal)}</strong></div>
           <button type="button" className="command-button command-button--ghost" onClick={load} disabled={loading}>
             <RefreshCw size={17} /> 更新
           </button>
@@ -143,13 +157,15 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
       </div>
 
       <p className="panel-note budget-note">
-        まずは大分類ごとの全体予算だけ入力してください。細かく管理したい分類だけ開くと、小分類ごとの予算も設定できます。
+        定期出費は登録予定日より前から予算内に確保されます。自動登録後は実績へ切り替わるため、二重には計算されません。
       </p>
 
       <div className="budget-grid">
         {loading && categoryRows.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
         {!loading && categoryRows.length === 0 && <div className="empty-state">カテゴリを登録してください</div>}
-        {categoryRows.map(row => (
+        {categoryRows.map(row => {
+          const reserved = reservedFor(row.category1);
+          return (
           <article className="budget-tile budget-tile--group" key={row.category1}>
             <button
               type="button"
@@ -167,12 +183,16 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
                 onChange={event => updateBudget(row.category1, "", Number(event.target.value))}
               />
             </label>
+            <div className="budget-reservation-summary">
+              <span>定期出費の確保 <strong>{yen(reserved)}</strong></span>
+              <span>確保後の予算 <strong>{yen(Number(row.budgetAmount || 0) - reserved)}</strong></span>
+            </div>
             <em>小分類予算 {yen(categorySubTotal(row.category1))}</em>
             {expandedCategory === row.category1 && (
               <div className="budget-sub-list">
                 {subRowsFor(row.category1).map(subRow => (
                   <label key={`${subRow.category1}-${subRow.category2}`}>
-                    <span>{subRow.category2}</span>
+                    <span>{subRow.category2}<small>確保 {yen(reservedFor(subRow.category1, subRow.category2 || ""))}</small></span>
                     <input
                       type="number"
                       value={subRow.budgetAmount}
@@ -183,7 +203,8 @@ export function BudgetPage({ category1, category2, budgetEnabled, budgetPeriod, 
               </div>
             )}
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

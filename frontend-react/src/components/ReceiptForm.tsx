@@ -13,8 +13,9 @@ import {
   today,
   yen
 } from "../api/normalizers";
-import type { Category1, Category2, ReceiptForm as ReceiptFormType, ReceiptItem, TaxFlag } from "../api/types";
+import type { Category1, Category2, Invoice, ReceiptForm as ReceiptFormType, ReceiptItem, TaxFlag } from "../api/types";
 import { IconButton } from "./IconButton";
+import { SupplierCombobox } from "./SupplierCombobox";
 
 const blankItem: ReceiptItem = {
   itemName: "",
@@ -40,6 +41,7 @@ export function emptyReceipt(): ReceiptFormType {
   return {
     invoiceRegistrationNumber: "",
     supplierName: "",
+    supplierCategory: "その他",
     supplierImage: "",
     receiptDate: today(),
     receiptTime: nowTime(),
@@ -62,6 +64,7 @@ type ReceiptFormProps = {
 type SupplierLookupResult = {
   supplierName: string;
   supplierLogo?: string;
+  supplierCategory?: string;
   taxFlag?: string | number;
 };
 
@@ -82,6 +85,12 @@ export function ReceiptForm({
   const [removedItem, setRemovedItem] = useState<{ item: ReceiptItem; index: number } | null>(null);
   const [bulkCategory1, setBulkCategory1] = useState("");
   const [bulkCategory2, setBulkCategory2] = useState("");
+  const [suppliers, setSuppliers] = useState<Invoice[]>([]);
+
+  useEffect(() => {
+    // 2026-11-05 Codex: 手入力とAI入力で同じ店舗候補を使い、表記ゆれを選択時に解消する。
+    api.master.invoices().then(setSuppliers).catch(() => setSuppliers([]));
+  }, []);
 
   useEffect(() => {
     const next = initial || emptyReceipt();
@@ -285,10 +294,32 @@ export function ReceiptForm({
     patch({
       supplierName: pendingSupplier.supplierName || form.supplierName,
       supplierImage: pendingSupplier.supplierLogo || form.supplierImage,
+      supplierCategory: pendingSupplier.supplierCategory || form.supplierCategory || "その他",
       taxFlag,
       receiptDetails
     });
     setPendingSupplier(null);
+  }
+
+  function selectSupplier(supplier: Invoice) {
+    const taxFlag: TaxFlag = String(supplier.taxFlag) === "1" ? "1" : "0";
+    setInvoiceInput(invoiceDigits(supplier.invoiceRegistrationNumber));
+    setForm(current => {
+      const receiptDetails = taxFlag === current.taxFlag
+        ? current.receiptDetails
+        : current.receiptDetails.map(item =>
+            withTaxBreakdown(unitPriceForTaxFlag(normalizeReceiptItem(item), taxFlag, category2), taxFlag, category2)
+          );
+      return {
+        ...current,
+        invoiceRegistrationNumber: supplier.invoiceRegistrationNumber,
+        supplierName: supplier.supplierName,
+        supplierCategory: supplier.supplierCategory || "その他",
+        supplierImage: supplier.supplierImage || supplier.supplierLogo || supplier.img || current.supplierImage,
+        taxFlag,
+        receiptDetails
+      };
+    });
   }
 
   async function onLogoFile(file?: File) {
@@ -371,10 +402,17 @@ export function ReceiptForm({
             </div>
             <small className="field-hint">13桁の登録番号から店舗名・店舗画像・税区分を取得します。</small>
           </label>
-          <label className="field">
+          <div className="field">
             <span>店舗名（任意）</span>
-            <input value={form.supplierName} placeholder="電気代・家賃などは空欄でも保存できます" onChange={event => patch({ supplierName: event.target.value })} />
-          </label>
+            <SupplierCombobox
+              value={form.supplierName}
+              rows={suppliers}
+              placeholder="店名を入力すると登録店舗を検索します"
+              onChange={supplierName => patch({ supplierName })}
+              onSelect={selectSupplier}
+            />
+            <small className="field-hint">候補を選ぶと登録番号・画像・税区分を自動入力します。</small>
+          </div>
           <label className="field">
             <span>日付</span>
             <input type="date" value={form.receiptDate} onChange={event => patch({ receiptDate: event.target.value })} />

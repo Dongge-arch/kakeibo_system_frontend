@@ -1,4 +1,4 @@
-import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch, TextCursorInput } from "lucide-react";
+import { Camera, CheckCircle2, GalleryHorizontalEnd, LibraryBig, LoaderCircle, RefreshCw, ScanSearch, ShieldAlert, TextCursorInput, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { invoiceDigits, parseNumber, prepareReceiptImage, toTaxFlag } from "../api/normalizers";
@@ -90,19 +90,13 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
     }
 
     const canvas = document.createElement("canvas");
-    const overlayWidthRatio = 0.7;
-    const overlayHeightRatio = 0.65;
-    const cropWidth = Math.floor(video.videoWidth * overlayWidthRatio);
-    const cropHeight = Math.floor(video.videoHeight * overlayHeightRatio);
-    const cropX = Math.floor((video.videoWidth - cropWidth) / 2);
-    const cropY = Math.floor((video.videoHeight - cropHeight) / 2);
-
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // 2026-11-05 Codex: 長いレシートの上下を欠落させないよう、プレビュー枠ではなく撮影画面全体を保存する。
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
     setMimeType("image/jpeg");
     setImage(dataUrl);
     setCaptured(true);
@@ -189,6 +183,7 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
               invoiceRegistrationNumber: invoiceNo,
               supplierName: found.supplierName || nextReceipt.supplierName,
               supplierImage: found.supplierLogo || nextReceipt.supplierImage,
+              supplierCategory: found.supplierCategory || nextReceipt.supplierCategory || "その他",
               taxFlag,
               pricesAreRaw: true,
               needsTaxSelection: false
@@ -271,32 +266,46 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
 
         <div className="ai-upload-zone">
           {inputMode === "image" ? (
-            <>
-              <div className="camera-stage">
+            <div className="receipt-scanner">
+              <div className="scanner-status">
+                <span className={image ? "is-ready" : cameraError ? "is-error" : cameraActive ? "is-live" : ""}>
+                  {image ? <CheckCircle2 size={17} /> : cameraError ? <ShieldAlert size={17} /> : <Camera size={17} />}
+                  {image ? "画像を確認してください" : cameraError ? "カメラを利用できません" : cameraActive ? "撮影できます" : "撮影方法を選択"}
+                </span>
+                {captured && image && <em>全体が読み取れる明るさか確認してください</em>}
+              </div>
+              <div className={`camera-stage ${cameraActive ? "is-live" : ""} ${image ? "has-image" : ""}`}>
                 {image ? (
                   <img src={image} alt="キャプチャ画像" />
                 ) : (
                   <>
                     <video ref={videoRef} playsInline muted />
-                    <div className="scan-overlay">
-                      <span>レシートスキャン枠</span>
-                    </div>
-                    {!cameraActive && !cameraError && <div className="camera-placeholder">写真を選択するか、カメラを起動してください。</div>}
-                    {cameraError && <div className="camera-error">{cameraError}</div>}
+                    {cameraActive && <div className="scan-overlay"><i /><i /><i /><i /><span>レシート全体を枠内へ</span></div>}
+                    {!cameraActive && !cameraError && (
+                      <div className="camera-empty-state"><Camera size={34} /><strong>レシートを撮影</strong><span>平らな場所で、影が入らないように撮影してください</span></div>
+                    )}
+                    {cameraError && (
+                      <div className="camera-permission-state">
+                        <ShieldAlert size={34} />
+                        <strong>{cameraError}</strong>
+                        <span>ブラウザのサイト設定でカメラを許可するか、写真から選択してください。</span>
+                        <button type="button" className="command-button command-button--ghost" onClick={startCamera}><RefreshCw size={17} /> 再試行</button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
-              <div className="upload-actions">
+              <div className="scanner-actions">
                 {!image ? (
                   <>
-                    <p className="ai-upload-guidance">{preparingImage ? "送信用に画像を圧縮しています..." : "レシートを撮影するか、写真から選択してください。"}</p>
-                    <button type="button" className="command-button command-button--ghost" disabled={preparingImage} onClick={cameraActive ? captureFrame : startCamera}>
-                      <Camera size={17} /> {cameraActive ? "撮影" : "カメラ起動"}
+                    <button type="button" className={`scanner-camera-button ${cameraActive ? "is-shutter" : ""}`} disabled={preparingImage} onClick={cameraActive ? captureFrame : startCamera}>
+                      <Camera size={20} /> {cameraActive ? "撮影する" : "カメラを開く"}
                     </button>
-                    <label className="command-button command-button--ghost">
-                      <GalleryHorizontalEnd size={17} /> 写真
+                    <label className="command-button command-button--ghost scanner-gallery-button">
+                      <GalleryHorizontalEnd size={17} /> 写真から選択
                       <input type="file" accept="image/*" disabled={preparingImage} onChange={event => pickImage(event.target.files?.[0])} />
                     </label>
+                    {preparingImage && <p className="ai-upload-guidance"><LoaderCircle className="spin" size={16} /> 画像を準備しています...</p>}
                   </>
                 ) : (
                   <>
@@ -305,15 +314,15 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
                       setCaptured(false);
                       setCameraError("");
                     }}>
-                      <Camera size={17} /> 画像を選び直す
+                      <X size={17} /> 撮り直す
                     </button>
                     <button type="button" className="command-button command-button--primary" onClick={analyze} disabled={analyzing}>
-                      {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} AI解析
+                      {analyzing ? <LoaderCircle className="spin" size={17} /> : <ScanSearch size={17} />} {analyzing ? "解析中..." : "この画像を解析"}
                     </button>
                   </>
                 )}
               </div>
-            </>
+            </div>
           ) : (
             <div className="ai-text-entry">
               <textarea

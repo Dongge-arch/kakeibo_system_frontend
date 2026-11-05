@@ -429,7 +429,7 @@ export const api = {
       salaryCategories: string[];
     }) => post("/receipt/adddefaultcategories", payload),
     deleteSalaryCategory: (salaryCategoryName: string) => put("/receipt/deletesalarycategory", { salaryCategoryName }),
-    supplierByInvoice: (invoiceNo: string) => get<Array<{ supplierName: string; supplierLogo?: string; taxFlag?: string | number }>>(
+    supplierByInvoice: (invoiceNo: string) => get<Array<{ supplierName: string; supplierLogo?: string; supplierCategory?: string; taxFlag?: string | number }>>(
       `/receipt/getSupplierByInvoice?invoiceNo=${encodeURIComponent(invoiceNo)}`
     ),
     invoices: () => get<Invoice[]>("/receipt/getinvoice"),

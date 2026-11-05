@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "./api/client";
 import { currentMonth, groupReceipts, monthRange } from "./api/normalizers";
-import type { AiUsageSummary, AppSettings, Budget, Income, ReceiptSummary } from "./api/types";
+import type { AiUsageSummary, AppSettings, Budget, Income, ReceiptSummary, RecurringExpense } from "./api/types";
 import { Layout, navItems, type PageKey } from "./components/Layout";
 import { Toast } from "./components/Toast";
 import { detectDevicePage, devicePageLabel, type DevicePage } from "./device";
@@ -85,6 +85,7 @@ function KakeiboApp({ auth, onPortal }: { auth: ReturnType<typeof useAuth>; onPo
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
   const [aiUsage, setAiUsage] = useState<AiUsageSummary | null>(null);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [loading, setLoading] = useState(false);
@@ -137,6 +138,7 @@ function KakeiboApp({ auth, onPortal }: { auth: ReturnType<typeof useAuth>; onPo
       setReceipts([]);
       setIncomes([]);
       setBudgets([]);
+      setRecurringExpenses([]);
       setAiUsage(null);
       setLoading(false);
       return;
@@ -144,16 +146,18 @@ function KakeiboApp({ auth, onPortal }: { auth: ReturnType<typeof useAuth>; onPo
 
     setLoading(true);
     try {
-      const [receiptResult, incomeRows, budgetRows, usage] = await Promise.all([
+      const [receiptResult, incomeRows, budgetRows, usage, recurringRows] = await Promise.all([
         api.receipt.search(monthRange(month)),
         api.income.list(month),
         settings.budgetEnabled ? api.budget.list().catch(() => []) : Promise.resolve([]),
-        api.ai.usage().catch(() => null)
+        api.ai.usage().catch(() => null),
+        settings.budgetEnabled ? api.recurring.list().catch(() => []) : Promise.resolve([])
       ]);
       setReceipts(groupReceipts(receiptResult.receiptDetails || []));
       setIncomes(incomeRows || []);
       setBudgets(budgetRows || []);
       setAiUsage(usage);
+      setRecurringExpenses(recurringRows || []);
     } catch (error) {
       notify((error as Error).message, "error");
     } finally {
@@ -254,6 +258,7 @@ function KakeiboApp({ auth, onPortal }: { auth: ReturnType<typeof useAuth>; onPo
           receipts={receipts}
           incomes={incomes}
           budgets={budgets}
+          recurringExpenses={recurringExpenses}
           aiUsage={aiUsage}
           budgetEnabled={settings.budgetEnabled}
           budgetPeriod={settings.budgetPeriod}
@@ -294,6 +299,7 @@ function KakeiboApp({ auth, onPortal }: { auth: ReturnType<typeof useAuth>; onPo
           category2={master.category2}
           budgetEnabled={settings.budgetEnabled}
           budgetPeriod={settings.budgetPeriod}
+          recurringExpenses={recurringExpenses}
           onChanged={refreshDashboard}
           notify={notify}
         />

@@ -16,6 +16,8 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Settings2,
+  Check,
   Sparkles,
   Trash2,
   WalletCards
@@ -23,6 +25,7 @@ import {
 import type { PointerEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
+import { buildRecurringReservations } from "../api/budgetReservations";
 import { currentMonth, yen } from "../api/normalizers";
 import type {
   AiUsageSummary,
@@ -32,7 +35,8 @@ import type {
   DashboardWidgetId,
   DashboardWidgetSize,
   Income,
-  ReceiptSummary
+  ReceiptSummary,
+  RecurringExpense
 } from "../api/types";
 
 type DashboardPageProps = {
@@ -40,6 +44,7 @@ type DashboardPageProps = {
   receipts: ReceiptSummary[];
   incomes: Income[];
   budgets: Budget[];
+  recurringExpenses: RecurringExpense[];
   aiUsage: AiUsageSummary | null;
   budgetEnabled: boolean;
   budgetPeriod: AppSettings["budgetPeriod"];
@@ -133,6 +138,7 @@ export function DashboardPage({
   receipts,
   incomes,
   budgets,
+  recurringExpenses,
   aiUsage,
   budgetEnabled,
   budgetPeriod,
@@ -142,6 +148,7 @@ export function DashboardPage({
 }: DashboardPageProps) {
   const [layout, setLayout] = useState<DashboardLayoutItem[]>(defaultLayout);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState<DashboardWidgetId | null>(null);
   const [now, setNow] = useState(new Date());
   const dragOverId = useRef<DashboardWidgetId | null>(null);
@@ -165,9 +172,12 @@ export function DashboardPage({
   const expenseTotal = receipts.reduce((sum, receipt) => sum + receipt.totalPrice, 0);
   const incomeTotal = incomes.reduce((sum, income) => sum + Number(income.salaryAmount || 0), 0);
   const balance = incomeTotal - expenseTotal;
-  const budgetSummary = useMemo(() => buildBudgetSummary(receipts, budgets, budgetPeriod), [receipts, budgets, budgetPeriod]);
+  const budgetSummary = useMemo(
+    () => buildBudgetSummary(receipts, budgets, recurringExpenses, budgetPeriod, month),
+    [receipts, budgets, recurringExpenses, budgetPeriod, month]
+  );
   const budgetUsageRate = budgetSummary.totalBudget > 0
-    ? Math.min(100, budgetSummary.totalSpent / budgetSummary.totalBudget * 100)
+    ? Math.min(100, (budgetSummary.totalSpent + budgetSummary.totalReserved) / budgetSummary.totalBudget * 100)
     : 0;
   const topCategories = useMemo(() => buildTopCategories(receipts), [receipts]);
   const maxCategory = Math.max(1, ...topCategories.map(([, value]) => value));
@@ -292,7 +302,7 @@ export function DashboardPage({
             <strong>{budgetSummary.totalBudget > 0 ? `${Math.round(budgetUsageRate)}%` : "-"}</strong>
           </div>
           <div className="budget-widget-note">
-            {yen(budgetSummary.totalSpent)} / {yen(budgetSummary.totalBudget)}
+            実績 {yen(budgetSummary.totalSpent)} + 確保 {yen(budgetSummary.totalReserved)} / {yen(budgetSummary.totalBudget)}
           </div>
           <div className="budget-meter"><span style={{ width: `${budgetUsageRate}%` }} /></div>
         </div>
@@ -393,12 +403,23 @@ export function DashboardPage({
             <button type="button" className="command-button command-button--ghost" onClick={onRefresh} disabled={loading}>
               <RefreshCw size={17} /> 更新
             </button>
-            <button type="button" className="command-button command-button--ghost" onClick={() => setPickerOpen(value => !value)}>
-              <Plus size={17} /> ウィジェット
-            </button>
-            <button type="button" className="command-button command-button--ghost" onClick={resetLayout}>
-              <RotateCcw size={17} /> 初期化
-            </button>
+            {!editMode ? (
+              <button type="button" className="command-button command-button--ghost" onClick={() => setEditMode(true)}>
+                <Settings2 size={17} /> ウィジェット編集
+              </button>
+            ) : (
+              <>
+                <button type="button" className="command-button command-button--ghost" onClick={() => setPickerOpen(value => !value)}>
+                  <Plus size={17} /> 追加
+                </button>
+                <button type="button" className="command-button command-button--ghost" onClick={resetLayout}>
+                  <RotateCcw size={17} /> 初期化
+                </button>
+                <button type="button" className="command-button command-button--primary" onClick={() => { setEditMode(false); setPickerOpen(false); }}>
+                  <Check size={17} /> 完了
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -415,24 +436,24 @@ export function DashboardPage({
         </section>
       )}
 
-      <section className="dashboard-widget-grid">
+      <section className={`dashboard-widget-grid ${editMode ? "is-editing" : ""}`}>
         {visibleLayout.map(item => (
           <article
             key={item.id}
             data-widget-id={item.id}
             className={`dashboard-widget dashboard-widget--${item.size} ${item.id === "clock" ? "dashboard-widget--clock" : ""} ${draggingId === item.id ? "is-dragging" : ""}`}
-            draggable
-            onDragStart={() => beginDrag(item.id)}
+            draggable={editMode}
+            onDragStart={() => editMode && beginDrag(item.id)}
             onDragEnd={endDrag}
             onDragOver={event => event.preventDefault()}
-            onDrop={() => moveWidget(item.id)}
-            onPointerEnter={() => draggingId && moveWidget(item.id)}
-            onPointerMove={event => moveWidgetByPointer(event, item.id)}
+            onDrop={() => editMode && moveWidget(item.id)}
+            onPointerEnter={() => editMode && draggingId && moveWidget(item.id)}
+            onPointerMove={event => editMode && moveWidgetByPointer(event, item.id)}
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
           >
             <header className="dashboard-widget-header">
-              <div
+              {editMode && <div
                 className="drag-handle"
                 title="移動"
                 onPointerDown={event => {
@@ -442,17 +463,17 @@ export function DashboardPage({
                 onPointerMove={event => moveWidgetByPointer(event, item.id)}
                 onPointerUp={endDrag}
                 onPointerCancel={endDrag}
-              ><GripVertical size={18} /></div>
+              ><GripVertical size={18} /></div>}
               <div>
                 <h3><span className="widget-title-icon">{widgetIcon(item.id)}</span>{widgetMeta[item.id].title}</h3>
                 <span>{widgetMeta[item.id].description}</span>
               </div>
-              <div className="widget-actions">
+              {editMode && <div className="widget-actions">
                 <button type="button" title="上へ移動" onClick={() => moveWidgetByDelta(item.id, -1)}><ChevronUp size={16} /></button>
                 <button type="button" title="下へ移動" onClick={() => moveWidgetByDelta(item.id, 1)}><ChevronDown size={16} /></button>
                 <button type="button" title="サイズ変更" onClick={() => resizeWidget(item.id)}><Maximize2 size={16} /></button>
                 <button type="button" title="削除" onClick={() => removeWidget(item.id)}><Trash2 size={16} /></button>
-              </div>
+              </div>}
             </header>
             <div className="dashboard-widget-body">
               {renderWidget(item.id)}
@@ -529,12 +550,13 @@ function isDefaultLikeLayout(saved: DashboardLayoutItem[], order: DashboardWidge
 type BudgetSummary = {
   totalBudget: number;
   totalSpent: number;
+  totalReserved: number;
   remaining: number;
-  rows: Array<{ key: string; amount: number; spent: number }>;
+  rows: Array<{ key: string; amount: number; spent: number; reserved: number }>;
 };
 
 function BudgetStatusCard({ summary, period }: { summary: BudgetSummary; period: AppSettings["budgetPeriod"] }) {
-  const usedRate = summary.totalBudget > 0 ? Math.min(100, summary.totalSpent / summary.totalBudget * 100) : 0;
+  const usedRate = summary.totalBudget > 0 ? Math.min(100, (summary.totalSpent + summary.totalReserved) / summary.totalBudget * 100) : 0;
   const periodLabel = period === "week" ? "今週" : "今月";
   const remainingTone = summary.remaining < 0 ? "over" : "safe";
 
@@ -545,13 +567,13 @@ function BudgetStatusCard({ summary, period }: { summary: BudgetSummary; period:
         <strong>{yen(Math.abs(summary.remaining))}</strong>
       </div>
       <div className="budget-widget-note">
-        {periodLabel}: {yen(summary.totalSpent)} / {yen(summary.totalBudget)}
+        {periodLabel} 実績 {yen(summary.totalSpent)} + 確保 {yen(summary.totalReserved)} / {yen(summary.totalBudget)}
       </div>
       <div className="budget-meter"><span style={{ width: `${usedRate}%` }} /></div>
       <div className="budget-mini-list">
         {summary.rows.length === 0 && <div className="empty-state">予算データなし</div>}
         {summary.rows.slice(0, 3).map(row => {
-          const rest = row.amount - row.spent;
+          const rest = row.amount - row.spent - row.reserved;
           return (
             <div key={row.key}>
               <span>{formatBudgetKey(row.key)}</span>
@@ -710,8 +732,9 @@ function formatBudgetKey(key: string) {
   return category2 && category2 !== "未分類" ? `${category1} / ${category2}` : category1;
 }
 
-function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], period: AppSettings["budgetPeriod"]): BudgetSummary {
+function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], recurringExpenses: RecurringExpense[], period: AppSettings["budgetPeriod"], month: string): BudgetSummary {
   const spentByKey = new Map<string, number>();
+  const reservedByKey = new Map<string, number>();
   const range = period === "week" ? currentWeekRange() : null;
 
   receipts.forEach(receipt => {
@@ -725,6 +748,14 @@ function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], perio
     });
   });
 
+  // 2026-11-05 Codex: 未登録の定期出費を実績とは分けて確保し、自動登録後の二重計上を防ぐ。
+  buildRecurringReservations(recurringExpenses, period, month).forEach(item => {
+    const categoryKey = budgetKey(item.category1, "");
+    const detailKey = budgetKey(item.category1, item.category2);
+    reservedByKey.set(categoryKey, (reservedByKey.get(categoryKey) || 0) + item.amount);
+    reservedByKey.set(detailKey, (reservedByKey.get(detailKey) || 0) + item.amount);
+  });
+
   const positiveBudgets = budgets.filter(item => Number(item.budgetAmount || 0) > 0);
   const categoriesWithOverall = new Set(
     positiveBudgets.filter(item => !item.category2).map(item => item.category1)
@@ -736,16 +767,19 @@ function buildBudgetSummary(receipts: ReceiptSummary[], budgets: Budget[], perio
       return {
         key,
         amount: Number(item.budgetAmount || 0),
-        spent: Number(spentByKey.get(key) || 0)
+        spent: Number(spentByKey.get(key) || 0),
+        reserved: Number(reservedByKey.get(key) || 0)
       };
     });
 
   const totalBudget = rows.reduce((sum, row) => sum + row.amount, 0);
   const totalSpent = rows.reduce((sum, row) => sum + row.spent, 0);
+  const totalReserved = rows.reduce((sum, row) => sum + row.reserved, 0);
   return {
     totalBudget,
     totalSpent,
-    remaining: totalBudget - totalSpent,
+    totalReserved,
+    remaining: totalBudget - totalSpent - totalReserved,
     rows
   };
 }

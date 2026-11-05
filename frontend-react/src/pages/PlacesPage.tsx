@@ -1,7 +1,8 @@
-import { Pencil, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Pencil, RefreshCw, Save, Search, Store, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import { buildImageSrc, fileToDataUrl, invoiceDigits } from "../api/normalizers";
+import { normalizeSupplierSearch } from "../api/supplierSearch";
 import type { Invoice, TaxFlag } from "../api/types";
 import { IconButton } from "../components/IconButton";
 
@@ -9,11 +10,38 @@ type PlacesPageProps = {
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
+const defaultPlaceCategories = ["コンビニ", "スーパー", "ドラッグストア", "飲食", "ネット通販", "交通", "公共料金", "その他"];
+
 export function PlacesPage({ notify }: PlacesPageProps) {
   const [rows, setRows] = useState<Invoice[]>([]);
   const [editing, setEditing] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("すべて");
+
+  const categories = useMemo(
+    () => Array.from(new Set([...defaultPlaceCategories, ...rows.map(row => row.supplierCategory || "その他")])).sort((left, right) => left.localeCompare(right, "ja")),
+    [rows]
+  );
+  // 2026-11-05 Codex: 店舗名の表記ゆれを吸収し、分類と検索語を同時に指定できる一覧へ整理する。
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = normalizeSupplierSearch(query);
+    return rows.filter(row => {
+      const category = row.supplierCategory || "その他";
+      if (categoryFilter !== "すべて" && category !== categoryFilter) return false;
+      if (!normalizedQuery) return true;
+      return normalizeSupplierSearch(`${row.supplierName} ${row.invoiceRegistrationNumber} ${category}`).includes(normalizedQuery);
+    });
+  }, [rows, query, categoryFilter]);
+  const groupedRows = useMemo(() => {
+    const groups = new Map<string, Invoice[]>();
+    filteredRows.forEach(row => {
+      const category = row.supplierCategory || "その他";
+      groups.set(category, [...(groups.get(category) || []), row]);
+    });
+    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right, "ja"));
+  }, [filteredRows]);
 
   async function load() {
     setLoading(true);
@@ -77,10 +105,35 @@ export function PlacesPage({ notify }: PlacesPageProps) {
         </button>
       </div>
 
-      <div className="place-grid">
+      <div className="place-filter-bar">
+        <label className="search-box place-search-box">
+          <Search size={17} />
+          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="店舗名・登録番号・分類を検索" />
+        </label>
+        <div className="place-category-tabs" aria-label="店舗分類">
+          {["すべて", ...categories].map(category => (
+            <button
+              type="button"
+              className={categoryFilter === category ? "is-active" : ""}
+              key={category}
+              onClick={() => setCategoryFilter(category)}
+            >
+              {category}
+              <span>{category === "すべて" ? rows.length : rows.filter(row => (row.supplierCategory || "その他") === category).length}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="place-group-list">
         {loading && rows.length === 0 && <div className="empty-state">データを読み込んでいます...</div>}
         {!loading && rows.length === 0 && <div className="empty-state">データなし</div>}
-        {rows.map(row => {
+        {!loading && rows.length > 0 && filteredRows.length === 0 && <div className="empty-state">条件に一致する店舗はありません</div>}
+        {groupedRows.map(([category, categoryRows]) => (
+          <section className="place-category-group" key={category}>
+            <header><span><Store size={17} />{category}</span><em>{categoryRows.length}件</em></header>
+            <div className="place-grid">
+        {categoryRows.map(row => {
           const logoSrc = buildImageSrc(row.supplierImage || row.supplierLogo || row.img);
           const isTaxIncluded = String(row.taxFlag) === "1";
           return (
@@ -91,6 +144,7 @@ export function PlacesPage({ notify }: PlacesPageProps) {
             <div className="place-summary-main">
               <strong>{row.supplierName || "-"}</strong>
               <span>{row.invoiceRegistrationNumber || "-"}</span>
+              <small>{row.supplierCategory || "その他"}</small>
             </div>
             <span className={`place-tax-badge ${isTaxIncluded ? "is-included" : "is-excluded"}`}>
               {isTaxIncluded ? "税込" : "税抜"}
@@ -104,6 +158,9 @@ export function PlacesPage({ notify }: PlacesPageProps) {
           </article>
           );
         })}
+            </div>
+          </section>
+        ))}
       </div>
 
       {editing && (
@@ -135,6 +192,17 @@ export function PlacesPage({ notify }: PlacesPageProps) {
               <label className="field">
                 <span>店舗名</span>
                 <input value={editing.supplierName} onChange={event => setEditing({ ...editing, supplierName: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>店舗分類</span>
+                <input
+                  list="place-category-options"
+                  value={editing.supplierCategory || "その他"}
+                  onChange={event => setEditing({ ...editing, supplierCategory: event.target.value })}
+                />
+                <datalist id="place-category-options">
+                  {categories.map(category => <option value={category} key={category} />)}
+                </datalist>
               </label>
               <label className="field">
                 <span>税区分</span>

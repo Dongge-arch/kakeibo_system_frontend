@@ -40,6 +40,7 @@ export type ReceiptForm = {
   receiptId?: string;
   invoiceRegistrationNumber: string;
   supplierName: string;
+  supplierCategory?: string;
   supplierImage?: string | null;
   receiptDate: string;
   receiptTime: string;
@@ -134,6 +135,7 @@ export type Invoice = {
   supplierLogo?: string;
   img?: string;
   supplierName: string;
+  supplierCategory?: string;
   taxFlag: TaxFlag;
 };
 
