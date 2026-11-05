@@ -5281,12 +5281,15 @@ textarea:focus-visible,
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 2px 0 8px;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-inline: contain;
   scrollbar-width: thin;
 }
 
 .place-category-tabs button {
   flex: 0 0 auto;
+  scroll-snap-align: start;
   min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 7px;

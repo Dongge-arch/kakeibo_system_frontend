@@ -18,7 +18,8 @@ type DeleteTarget = {
   action: () => Promise<unknown>;
 };
 
-const defaultCategory1 = ["食費", "日用品", "交通", "住居", "水道光熱", "通信", "医療", "美容", "衣服", "娯楽", "交際", "教育", "ペット", "税金・保険", "その他"];
+// 2026-11-06 Codex: 実際の登録商品に合わせ、自動車・育児・趣味・仕事を独立した大分類として追加する。
+const defaultCategory1 = ["食費", "日用品", "交通", "自動車", "住居", "水道光熱", "通信", "医療", "美容", "衣服", "育児・子ども", "娯楽", "趣味", "交際", "教育", "ペット", "税金・保険", "仕事", "その他"];
 
 const defaultCategory2 = [
   { category1Name: "食費", category2Name: "米・パン・麺", taxRate: 0.08 },
@@ -89,7 +90,72 @@ const defaultCategory2 = [
   { category1Name: "税金・保険", category2Name: "年金", taxRate: 0.1 },
   { category1Name: "その他", category2Name: "手数料", taxRate: 0.1 },
   { category1Name: "その他", category2Name: "現金調整", taxRate: 0.1 },
-  { category1Name: "その他", category2Name: "未分類", taxRate: 0.1 }
+  { category1Name: "その他", category2Name: "未分類", taxRate: 0.1 },
+  // 2026-11-06 Codex: 旧分類を残したまま、日常の購入内容を一目で判別できる詳細分類を追加する。
+  { category1Name: "食費", category2Name: "米・ごはん", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "パン・ベーカリー", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "麺類", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "肉類", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "魚介類", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "野菜", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "果物", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "卵", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "乳製品", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "豆・豆腐・納豆", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "惣菜・弁当", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "冷凍食品", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "菓子", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "アイス・デザート", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "調味料・油", taxRate: 0.08 },
+  { category1Name: "食費", category2Name: "酒類", taxRate: 0.1 },
+  { category1Name: "食費", category2Name: "その他食品", taxRate: 0.08 },
+  { category1Name: "日用品", category2Name: "収納用品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "電池・消耗品", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "生活雑貨", taxRate: 0.1 },
+  { category1Name: "日用品", category2Name: "花・園芸", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "飛行機", taxRate: 0.1 },
+  { category1Name: "交通", category2Name: "船舶", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "ガソリン", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "駐車場", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "高速道路", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "車検・整備", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "カー用品・部品", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "車両購入", taxRate: 0.1 },
+  { category1Name: "自動車", category2Name: "レンタカー", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "インテリア", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "引越し", taxRate: 0.1 },
+  { category1Name: "住居", category2Name: "廃棄物処理", taxRate: 0.1 },
+  { category1Name: "水道光熱", category2Name: "灯油", taxRate: 0.1 },
+  { category1Name: "通信", category2Name: "携帯料金", taxRate: 0.1 },
+  { category1Name: "通信", category2Name: "端末・周辺機器", taxRate: 0.1 },
+  { category1Name: "医療", category2Name: "医療・健康用品", taxRate: 0.1 },
+  { category1Name: "美容", category2Name: "美容機器", taxRate: 0.1 },
+  { category1Name: "衣服", category2Name: "下着・靴下", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "おむつ・おしりふき", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "授乳・哺乳用品", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "ベビー食品", taxRate: 0.08 },
+  { category1Name: "育児・子ども", category2Name: "ベビー衣類", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "育児用品", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "おもちゃ", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "保育・託児", taxRate: 0.1 },
+  { category1Name: "育児・子ども", category2Name: "子ども医療・ケア", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "書籍・雑誌", taxRate: 0.1 },
+  { category1Name: "娯楽", category2Name: "レジャー施設", taxRate: 0.1 },
+  { category1Name: "趣味", category2Name: "電子工作", taxRate: 0.1 },
+  { category1Name: "趣味", category2Name: "カメラ・写真", taxRate: 0.1 },
+  { category1Name: "趣味", category2Name: "模型・工作", taxRate: 0.1 },
+  { category1Name: "趣味", category2Name: "音楽", taxRate: 0.1 },
+  { category1Name: "趣味", category2Name: "コレクション", taxRate: 0.1 },
+  { category1Name: "趣味", category2Name: "趣味用品", taxRate: 0.1 },
+  { category1Name: "交際", category2Name: "花・ギフト", taxRate: 0.1 },
+  { category1Name: "教育", category2Name: "学校・授業料", taxRate: 0.1 },
+  { category1Name: "税金・保険", category2Name: "行政手数料", taxRate: 0.1 },
+  { category1Name: "仕事", category2Name: "業務用品", taxRate: 0.1 },
+  { category1Name: "仕事", category2Name: "交通・出張", taxRate: 0.1 },
+  { category1Name: "仕事", category2Name: "会議・交際", taxRate: 0.1 },
+  { category1Name: "その他", category2Name: "値引・調整", taxRate: 0.1 },
+  { category1Name: "その他", category2Name: "寄付", taxRate: 0.1 },
+  { category1Name: "その他", category2Name: "雑費・不明", taxRate: 0.1 }
 ];
 
 const defaultSalaryCategories = ["給与", "賞与", "副業", "投資", "返金", "その他"];

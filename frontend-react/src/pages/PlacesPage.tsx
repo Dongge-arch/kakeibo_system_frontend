@@ -10,7 +10,15 @@ type PlacesPageProps = {
   notify: (message: string, tone?: "success" | "error" | "info") => void;
 };
 
-const defaultPlaceCategories = ["コンビニ", "スーパー", "ドラッグストア", "飲食", "ネット通販", "交通", "公共料金", "その他"];
+// 2026-11-06 Codex: 実登録店舗の業態に合わせ、検索・編集で使用できる店舗分類を拡張する。
+const defaultPlaceCategories = [
+  "コンビニ", "スーパー・食品", "ドラッグストア", "飲食店", "カフェ・菓子",
+  "ネット通販", "百貨店・商業施設", "ホームセンター", "100円ショップ",
+  "家具・インテリア", "家電・PC", "衣料・靴", "美容・理容", "医療機関",
+  "ガソリンスタンド", "駐車場", "鉄道・バス", "高速道路", "高速道路施設", "自動車関連",
+  "公共料金", "行政・税金", "宿泊・旅行", "教育・書籍", "ペット",
+  "ベビー・子ども", "趣味・娯楽", "生活サービス", "総合小売・サービス", "その他", "登録不要"
+];
 
 export function PlacesPage({ notify }: PlacesPageProps) {
   const [rows, setRows] = useState<Invoice[]>([]);
@@ -22,6 +30,10 @@ export function PlacesPage({ notify }: PlacesPageProps) {
 
   const categories = useMemo(
     () => Array.from(new Set([...defaultPlaceCategories, ...rows.map(row => row.supplierCategory || "その他")])).sort((left, right) => left.localeCompare(right, "ja")),
+    [rows]
+  );
+  const visibleCategories = useMemo(
+    () => Array.from(new Set(rows.map(row => row.supplierCategory || "その他"))).sort((left, right) => left.localeCompare(right, "ja")),
     [rows]
   );
   // 2026-11-05 Codex: 店舗名の表記ゆれを吸収し、分類と検索語を同時に指定できる一覧へ整理する。
@@ -111,7 +123,7 @@ export function PlacesPage({ notify }: PlacesPageProps) {
           <input value={query} onChange={event => setQuery(event.target.value)} placeholder="店舗名・登録番号・分類を検索" />
         </label>
         <div className="place-category-tabs" aria-label="店舗分類">
-          {["すべて", ...categories].map(category => (
+          {["すべて", ...visibleCategories].map(category => (
             <button
               type="button"
               className={categoryFilter === category ? "is-active" : ""}
