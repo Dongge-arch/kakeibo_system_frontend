@@ -5553,3 +5553,297 @@ textarea:focus-visible,
     minmax(90px, 0.7fr)
     42px;
 }
+
+/* 2026-11-05 Codex: 入力項目の基準線を統一し、デスクトップとモバイルで同じ情報順を保つ。 */
+.form-grid--receipt {
+  align-items: start;
+}
+
+.receipt-meta-row {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(260px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.receipt-tax-mode {
+  width: 100%;
+}
+
+.receipt-logo-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.receipt-field-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.receipt-logo-field .logo-strip {
+  margin-top: 0;
+}
+
+.table-toolbar {
+  display: grid;
+  grid-template-columns: minmax(90px, 130px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.table-toolbar > h3 {
+  margin: 25px 0 0;
+}
+
+.receipt-detail-tools {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.receipt-bulk-fields {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.receipt-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.line-table {
+  --receipt-line-columns:
+    minmax(180px, 1.55fr)
+    minmax(145px, 1fr)
+    minmax(145px, 1fr)
+    minmax(82px, 0.58fr)
+    minmax(105px, 0.72fr)
+    minmax(105px, 0.72fr)
+    minmax(112px, 0.78fr)
+    42px;
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-table-head,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-row,
+.line-table-head,
+.line-row {
+  width: 100%;
+  min-width: 1080px;
+  grid-template-columns: var(--receipt-line-columns);
+}
+
+.line-row {
+  align-items: start;
+}
+
+.line-field--action {
+  padding-top: 1px;
+}
+
+/* 2026-11-05 Codex: モバイル小型ウィジェットの比率と見出し改行を固定し、一覧性を高める。 */
+.widget-heading {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  align-content: center;
+}
+
+.dashboard-widget-header .widget-heading h3 {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-widget-header .widget-title-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-widget-header .widget-heading > span:not(.widget-title-icon) {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .receipt-meta-row,
+  .table-toolbar,
+  .receipt-bulk-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-meta-row {
+    gap: 16px;
+  }
+
+  .table-toolbar > h3 {
+    margin: 0;
+  }
+
+  .receipt-detail-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .receipt-detail-actions .command-button {
+    width: 100%;
+  }
+
+  .receipt-detail-actions .command-button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .line-field--total small {
+    grid-column: 2;
+    margin-top: -5px;
+    text-align: left;
+  }
+
+  .dashboard-widget-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .dashboard-widget-grid:not(.is-editing) .dashboard-widget--small {
+    grid-column: span 6;
+  }
+
+  .dashboard-widget-grid:not(.is-editing) .dashboard-widget--medium,
+  .dashboard-widget-grid:not(.is-editing) .dashboard-widget--wide,
+  .dashboard-widget-grid:not(.is-editing) .dashboard-widget--large,
+  .dashboard-widget-grid:not(.is-editing) [data-widget-id="recentExpense"],
+  .dashboard-widget-grid:not(.is-editing) [data-widget-id="recentIncome"] {
+    grid-column: span 12;
+  }
+
+  .dashboard-widget-grid.is-editing .dashboard-widget {
+    grid-column: span 12;
+  }
+
+  .dashboard-widget {
+    min-height: 152px;
+  }
+
+  .dashboard-widget-header {
+    min-height: 52px;
+    padding: 10px;
+  }
+
+  .dashboard-widget-header .widget-heading > span:not(.widget-title-icon) {
+    display: none;
+  }
+
+  .dashboard-widget-header .widget-heading h3 {
+    font-size: 15px;
+  }
+
+  .dashboard-widget-header .widget-title-icon {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+  }
+
+  .dashboard-widget-body {
+    min-height: 94px;
+    padding: 12px;
+  }
+
+  .dashboard-widget .metric-card {
+    min-height: 94px;
+  }
+
+  .dashboard-widget .metric-card strong,
+  .budget-widget-value strong {
+    font-size: clamp(18px, 8cqi, 26px);
+    line-height: 1.12;
+  }
+
+  .cash-flow-widget {
+    min-height: 104px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .cash-flow-widget > div {
+    padding: 9px 7px;
+    gap: 6px;
+  }
+
+  .cash-flow-widget span {
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .cash-flow-widget strong {
+    font-size: clamp(14px, 5.4cqi, 20px);
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .clock-widget {
+    min-height: 92px;
+  }
+
+  .clock-widget strong {
+    font-size: clamp(28px, 14cqi, 40px);
+    white-space: nowrap;
+  }
+}
+
+:root[data-large-text="true"] .device-page--mobile .dashboard-widget-grid:not(.is-editing) .dashboard-widget,
+:root[data-large-text="true"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget {
+  grid-column: span 12;
+}
+
+/* 2026-11-05 Codex: 端末判定側の1列指定を上書きし、全ウィジェットを均等な比率で配置する。 */
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .dashboard-widget-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-table-head,
+:root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .line-row {
+  min-width: 972px;
+}
+
+@media (max-width: 720px) {
+  :root[data-device="mobile"] .dashboard-widget-grid,
+  :root[data-device-page="mobile"] .device-page--mobile .dashboard-widget-grid,
+  :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  :root[data-device="mobile"] .dashboard-widget-grid:not(.is-editing) .dashboard-widget--small,
+  :root[data-device-page="mobile"] .device-page--mobile .dashboard-widget-grid:not(.is-editing) .dashboard-widget--small,
+  :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget--small {
+    grid-column: span 6;
+  }
+
+  :root[data-device="mobile"] .dashboard-widget-grid:not(.is-editing) .dashboard-widget--medium,
+  :root[data-device="mobile"] .dashboard-widget-grid:not(.is-editing) .dashboard-widget--wide,
+  :root[data-device="mobile"] .dashboard-widget-grid:not(.is-editing) .dashboard-widget--large,
+  :root[data-device-page="mobile"] .device-page--mobile .dashboard-widget-grid:not(.is-editing) .dashboard-widget--medium,
+  :root[data-device-page="mobile"] .device-page--mobile .dashboard-widget-grid:not(.is-editing) .dashboard-widget--wide,
+  :root[data-device-page="mobile"] .device-page--mobile .dashboard-widget-grid:not(.is-editing) .dashboard-widget--large,
+  :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget--medium,
+  :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget--wide,
+  :root[data-device-page="mobile-safari"] .device-page--mobile-safari .dashboard-widget-grid:not(.is-editing) .dashboard-widget--large {
+    grid-column: span 12;
+  }
+}

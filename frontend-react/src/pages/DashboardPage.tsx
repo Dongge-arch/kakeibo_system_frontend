@@ -464,8 +464,8 @@ export function DashboardPage({
                 onPointerUp={endDrag}
                 onPointerCancel={endDrag}
               ><GripVertical size={18} /></div>}
-              <div>
-                <h3><span className="widget-title-icon">{widgetIcon(item.id)}</span>{widgetMeta[item.id].title}</h3>
+              <div className="widget-heading">
+                <h3><span className="widget-title-icon">{widgetIcon(item.id)}</span><span className="widget-title-text">{widgetMeta[item.id].title}</span></h3>
                 <span>{widgetMeta[item.id].description}</span>
               </div>
               {editMode && <div className="widget-actions">

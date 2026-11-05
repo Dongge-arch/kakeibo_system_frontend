@@ -421,7 +421,10 @@ export function ReceiptForm({
             <span>時刻</span>
             <input type="time" value={form.receiptTime} onChange={event => patch({ receiptTime: event.target.value })} />
           </label>
-          <fieldset className="segmented">
+        </div>
+
+        <div className="receipt-meta-row">
+          <fieldset className="segmented receipt-tax-mode">
             <legend>単価の税区分</legend>
             <button type="button" className={form.taxFlag === "1" ? "is-active" : ""} onClick={() => updateTaxFlag("1")}>
               単価は税込
@@ -435,71 +438,83 @@ export function ReceiptForm({
                 : "入力した単価を税込価格として扱います。"}
             </small>
           </fieldset>
-        </div>
-
-        <div className="logo-strip">
-          <div className="logo-preview">
-            {logoSrc ? <img src={logoSrc} alt="" /> : <span>店舗画像なし</span>}
+          <div className="receipt-logo-field">
+            <span className="receipt-field-label">店舗画像（任意）</span>
+            <div className="logo-strip">
+              <div className="logo-preview">
+                {logoSrc ? <img src={logoSrc} alt="" /> : <span>店舗画像なし</span>}
+              </div>
+              <label className="file-button">
+                店舗画像を選択
+                <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => onLogoFile(event.target.files?.[0])} />
+              </label>
+            </div>
           </div>
-          <label className="file-button">
-            店舗画像
-            <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => onLogoFile(event.target.files?.[0])} />
-          </label>
         </div>
       </section>
 
       <section className="panel">
         <div className="table-toolbar">
           <h3>明細</h3>
-          <div className="toolbar-actions">
-            <select
-              aria-label="一括設定する大分類"
-              value={bulkCategory1}
-              onChange={event => {
-                setBulkCategory1(event.target.value);
-                setBulkCategory2("");
-              }}
-            >
-              <option value="">大分類を一括設定</option>
-              {category1.map(row => (
-                <option key={row.category1Name} value={row.category1Name}>{row.category1Name}</option>
-              ))}
-            </select>
-            <select
-              aria-label="一括設定する小分類"
-              value={bulkCategory2}
-              disabled={!bulkCategory1}
-              onChange={event => setBulkCategory2(event.target.value)}
-            >
-              <option value="">小分類を選択</option>
-              {category2
-                .filter(row => row.category1Name === bulkCategory1)
-                .map(row => (
-                  <option key={`${row.category1Name}-${row.category2Name}`} value={row.category2Name}>
-                    {row.category2Name}
-                  </option>
-                ))}
-            </select>
-            <button
-              type="button"
-              className="command-button command-button--ghost"
-              disabled={!bulkCategory1 || !bulkCategory2}
-              onClick={applyCategoryToAll}
-            >
-              全明細に適用
-            </button>
-            {form.taxFlag === "0" && (
+          <div className="receipt-detail-tools">
+            <div className="receipt-bulk-fields">
+              <label className="field">
+                <span>一括設定する大分類</span>
+                <select
+                  aria-label="一括設定する大分類"
+                  value={bulkCategory1}
+                  onChange={event => {
+                    setBulkCategory1(event.target.value);
+                    setBulkCategory2("");
+                  }}
+                >
+                  <option value="">大分類を選択</option>
+                  {category1.map(row => (
+                    <option key={row.category1Name} value={row.category1Name}>{row.category1Name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>一括設定する小分類</span>
+                <select
+                  aria-label="一括設定する小分類"
+                  value={bulkCategory2}
+                  disabled={!bulkCategory1}
+                  onChange={event => setBulkCategory2(event.target.value)}
+                >
+                  <option value="">小分類を選択</option>
+                  {category2
+                    .filter(row => row.category1Name === bulkCategory1)
+                    .map(row => (
+                      <option key={`${row.category1Name}-${row.category2Name}`} value={row.category2Name}>
+                        {row.category2Name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            <div className="receipt-detail-actions">
               <button
                 type="button"
                 className="command-button command-button--ghost"
-                onClick={recalculateTaxIncludedPrices}
+                disabled={!bulkCategory1 || !bulkCategory2}
+                onClick={applyCategoryToAll}
               >
-                <WandSparkles size={17} /> 分類税率で税込価格を再計算
+                全明細に適用
               </button>
-            )}
-            <button type="button" className="command-button command-button--ghost" onClick={addRow}>
-              <Plus size={17} /> 行追加
-            </button>
+              {form.taxFlag === "0" && (
+                <button
+                  type="button"
+                  className="command-button command-button--ghost"
+                  onClick={recalculateTaxIncludedPrices}
+                >
+                  <WandSparkles size={17} /> 分類税率で税込価格を再計算
+                </button>
+              )}
+              <button type="button" className="command-button command-button--ghost" onClick={addRow}>
+                <Plus size={17} /> 行追加
+              </button>
+            </div>
           </div>
         </div>
 
