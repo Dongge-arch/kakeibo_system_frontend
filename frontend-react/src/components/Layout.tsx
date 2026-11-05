@@ -10,6 +10,7 @@ import {
   LogOut,
   MapPinned,
   Menu,
+  MoreHorizontal,
   ReceiptText,
   Search,
   Settings,
@@ -105,12 +106,30 @@ type LayoutProps = {
 export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled, language, onNavigate, onLogout, onPortal, children }: LayoutProps) {
   const loggedIn = !!session;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuCloseRef = useRef<HTMLButtonElement | null>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [page]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    // 2026-11-05 Codex: モバイルメニュー表示中は背景スクロールを止め、Escでも閉じられるようにする。
+    const previousOverflow = document.body.style.overflow;
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeWithEscape);
+    window.requestAnimationFrame(() => mobileMenuCloseRef.current?.focus());
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     function handleTouchStart(event: TouchEvent) {
@@ -148,6 +167,10 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
   function navigate(nextPage: PageKey) {
     onNavigate(nextPage);
     setMobileMenuOpen(false);
+    window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    });
   }
 
   return (
@@ -160,7 +183,7 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
-      <aside className="side-rail">
+      <aside id="primary-navigation" className="side-rail" aria-label="メインメニュー">
         <div className="brand-mark" aria-label="Home Kakeibo">
           <div className="brand-symbol"><KakeiboLogo /></div>
           <div>
@@ -168,7 +191,7 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
             <span>Home Kakeibo</span>
           </div>
         </div>
-        <button type="button" className="mobile-menu-close" aria-label="メニューを閉じる" onClick={() => setMobileMenuOpen(false)}>
+        <button ref={mobileMenuCloseRef} type="button" className="mobile-menu-close" aria-label="メニューを閉じる" onClick={() => setMobileMenuOpen(false)}>
           <X size={19} />
         </button>
 
@@ -207,11 +230,22 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
             );
           })}
         </nav>
+        <div className="side-rail-footer">
+          <button type="button" className="side-rail-account" onClick={() => navigate("settings")}>
+            {session?.avatarImage ? <img className="user-chip-avatar" src={session.avatarImage} alt="" /> : <GalleryVerticalEnd size={18} />}
+            <span><strong>{session?.nickname || t(language, "guest")}</strong><small>{loggedIn ? t(language, "settings") : t(language, "login")}</small></span>
+            <ChevronRight size={16} />
+          </button>
+          <div className="side-rail-commands">
+            <button type="button" onClick={onPortal}><House size={17} /><span>ポータル</span></button>
+            {session && <button type="button" onClick={onLogout}><LogOut size={17} /><span>{t(language, "logout")}</span></button>}
+          </div>
+        </div>
       </aside>
 
       <main className="workbench">
         <header className="topbar">
-          <button type="button" className="mobile-menu-button" aria-label="メニューを開く" onClick={() => setMobileMenuOpen(true)}>
+          <button type="button" className="mobile-menu-button" aria-label="メニューを開く" aria-controls="primary-navigation" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}>
             <Menu size={20} />
           </button>
           <div>
@@ -228,9 +262,39 @@ export function Layout({ page, title, session, budgetEnabled, autoLinkageEnabled
             <IconButton label={t(language, "settings")} icon={SlidersHorizontal} onClick={() => navigate("settings")} />
           </div>
         </header>
-        {children}
+        <div className="page-stage" key={page}>{children}</div>
       </main>
+      <nav className="mobile-bottom-nav" aria-label="クイックナビゲーション">
+        {loggedIn ? <>
+          <MobileNavButton active={page === "dashboard"} label={t(language, "dashboard")} icon={House} onClick={() => navigate("dashboard")} />
+          <MobileNavButton active={page === "ai"} label={t(language, "aiExpense")} icon={Bot} onClick={() => navigate("ai")} />
+          <MobileNavButton active={page === "receipt"} emphasized label={t(language, "manualExpense")} icon={ReceiptText} onClick={() => navigate("receipt")} />
+          <MobileNavButton active={page === "receipts"} label={t(language, "expenseHistory")} icon={Search} onClick={() => navigate("receipts")} />
+          <MobileNavButton active={!(["dashboard", "ai", "receipt", "receipts"] as PageKey[]).includes(page)} label="その他" icon={MoreHorizontal} onClick={() => setMobileMenuOpen(true)} />
+        </> : <>
+          <MobileNavButton label="ポータル" icon={House} onClick={onPortal} />
+          <MobileNavButton active label={t(language, "login")} icon={GalleryVerticalEnd} onClick={() => navigate("settings")} />
+          <MobileNavButton label="メニュー" icon={Menu} onClick={() => setMobileMenuOpen(true)} />
+        </>}
+      </nav>
     </div>
+  );
+}
+
+type MobileNavButtonProps = {
+  active?: boolean;
+  emphasized?: boolean;
+  label: string;
+  icon: ComponentType<LucideProps>;
+  onClick: () => void;
+};
+
+function MobileNavButton({ active = false, emphasized = false, label, icon: Icon, onClick }: MobileNavButtonProps) {
+  return (
+    <button type="button" className={`${active ? "is-active" : ""} ${emphasized ? "is-emphasized" : ""}`} aria-current={active ? "page" : undefined} onClick={onClick}>
+      <span className="mobile-bottom-nav-icon"><Icon size={emphasized ? 22 : 20} /></span>
+      <small>{label}</small>
+    </button>
   );
 }
 
