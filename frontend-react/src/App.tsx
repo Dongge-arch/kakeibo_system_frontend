@@ -66,10 +66,10 @@ export default function App() {
       {moduleToast && <Toast message={moduleToast.message} tone={moduleToast.tone} onClose={() => setModuleToast(null)} />}
     </>;
   }
-  if (module === "meal" || module === "childcare") {
+  if (module === "kitchen" || module === "childcare") {
     return <ModuleShell module={module} onPortal={() => setModule("portal")}>
       {auth.session
-        ? module === "meal" ? <MealPage notify={notifyModule} /> : <ChildcarePage userId={auth.session.userId} notify={notifyModule} />
+        ? module === "kitchen" ? <MealPage notify={notifyModule} /> : <ChildcarePage userId={auth.session.userId} notify={notifyModule} />
         : <AccountGate login={auth.login} register={auth.register} notify={notifyModule} />}
       {moduleToast && <Toast message={moduleToast.message} tone={moduleToast.tone} onClose={() => setModuleToast(null)} />}
     </ModuleShell>;

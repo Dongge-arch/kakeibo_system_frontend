@@ -72,13 +72,13 @@
 .portal-module > svg { align-self: flex-end; margin-top: auto; color: #52675f; }
 .portal-module-icon { width: 54px; height: 54px; border-radius: 8px; display: grid; place-items: center; margin-bottom: 20px; }
 .portal-module--money .portal-module-icon { background: #dcece8; color: #176d60; }
-.portal-module--meal .portal-module-icon { background: #f7e3db; color: #a34a33; }
+.portal-module--kitchen .portal-module-icon { background: #f7e3db; color: #a34a33; }
 .portal-module--baby .portal-module-icon { background: #e8eddb; color: #597932; }
 .portal-module-label strong { display: block; font-size: 23px; line-height: 1.2; }
 .portal-module-label small { display: block; margin-top: 8px; color: #61716a; font-size: 13px; }
 
 .module-shell { background: #f7f9f8; }
-.module-shell--meal { --module-accent: #a34a33; --module-pale: #f9eae5; }
+.module-shell--kitchen { --module-accent: #a34a33; --module-pale: #f9eae5; }
 .module-shell--childcare { --module-accent: #2d705d; --module-pale: #e2efe9; }
 .module-back { border: 0; padding: 8px; background: transparent; color: #405e51; }
 .module-title { color: var(--module-accent); font-size: 20px; }
@@ -138,6 +138,321 @@
 .cook-step { width: 100%; min-height: 58px; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; text-align: left; border: 0; border-bottom: 1px solid #e6eeea; background: transparent; color: #192722; padding: 12px 0; }
 .cook-step > span:first-child { width: 29px; height: 29px; display: grid; place-items: center; background: var(--module-pale); color: var(--module-accent); border-radius: 50%; font-weight: 800; }
 .cook-step.is-done > span:last-child { color: #7f9086; text-decoration: line-through; }
+/* 2026-09-30 Codex: 調理中でも残り時間と操作が一目で分かる固定構成。 */
+.cook-timer {
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px solid #d8e2dd;
+  background: #f8faf9;
+}
+.cook-timer-heading {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.cook-timer-heading svg { color: var(--module-accent); }
+.cook-timer-heading time {
+  min-width: 104px;
+  font-size: 30px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.cook-timer-presets, .cook-timer-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+.cook-timer-presets button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border: 1px solid #cbd8d1;
+  border-radius: 5px;
+  background: #fff;
+  color: #3f5e50;
+}
+.cook-timer-controls label { display: flex; align-items: center; gap: 6px; color: #64766c; }
+.cook-timer-controls input { width: 72px; }
+
+.kitchen-workspace .module-heading p,
+.kitchen-workspace .module-subheading small {
+  margin: 5px 0 0;
+  color: #718177;
+  font-size: 12px;
+}
+.kitchen-shopping-layout {
+  display: grid;
+  grid-template-columns: minmax(330px, 0.72fr) minmax(0, 1.28fr);
+  gap: 30px;
+  align-items: start;
+}
+.kitchen-selection-section {
+  position: sticky;
+  top: 0;
+}
+.kitchen-selection-list,
+.kitchen-recipe-list,
+.kitchen-ingredient-list {
+  display: grid;
+  gap: 8px;
+}
+.kitchen-selection-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 82px 82px 38px;
+  align-items: end;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e6eeea;
+}
+.kitchen-selection-row > div,
+.kitchen-selection-row label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.kitchen-selection-row strong {
+  overflow-wrap: anywhere;
+}
+.kitchen-selection-row small,
+.kitchen-selection-row label span {
+  color: #718177;
+  font-size: 11px;
+}
+.kitchen-selection-row input {
+  min-width: 0;
+  padding: 0 7px;
+}
+.kitchen-export-actions {
+  margin: 0;
+}
+.kitchen-shopping-progress {
+  width: 100%;
+  height: 7px;
+  margin: 2px 0 18px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #e4ebe7;
+}
+.kitchen-shopping-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #3d8063;
+  transition: width 180ms ease;
+}
+.kitchen-manual-form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) minmax(120px, 0.8fr) minmax(110px, 0.7fr) auto;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dfe8e3;
+}
+.kitchen-manual-form .command-button { min-height: 42px; }
+.kitchen-clear-completed {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 12px auto;
+  color: #61766a;
+}
+.kitchen-manual-list { margin-bottom: 20px; }
+.kitchen-manual-list h3 {
+  margin: 0;
+  padding: 7px 9px;
+  background: #eef3f0;
+  color: #365d4c;
+  font-size: 13px;
+}
+.kitchen-manual-list .kitchen-shopping-row { grid-template-columns: 22px minmax(0, 1fr) auto 38px; }
+.kitchen-shopping-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.kitchen-shopping-column > h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+.kitchen-shopping-column > p {
+  margin: 0 0 11px;
+  color: #718177;
+  font-size: 12px;
+}
+.kitchen-shopping-group + .kitchen-shopping-group {
+  margin-top: 18px;
+}
+.kitchen-shopping-group h4 {
+  margin: 0;
+  padding: 7px 9px;
+  background: var(--module-pale);
+  color: var(--module-accent);
+  font-size: 13px;
+}
+.kitchen-shopping-row {
+  min-height: 55px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #e6eeea;
+}
+.kitchen-shopping-row > input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  accent-color: var(--module-accent);
+}
+.kitchen-shopping-row > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.kitchen-shopping-row small {
+  color: #718177;
+  overflow-wrap: anywhere;
+}
+.kitchen-shopping-row b {
+  font-size: 13px;
+}
+.kitchen-shopping-row.is-checked strong,
+.kitchen-shopping-row.is-checked b {
+  color: #8a9991;
+  text-decoration: line-through;
+}
+.kitchen-seasoning-column .kitchen-shopping-row {
+  grid-template-columns: 22px minmax(0, 1fr);
+}
+.kitchen-recipe-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
+  gap: 30px;
+  align-items: start;
+}
+.kitchen-recipe-layout > :only-child {
+  grid-column: 1 / -1;
+}
+.kitchen-recipe-library {
+  position: sticky;
+  top: 0;
+}
+.kitchen-search {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid #cbd8d1;
+  background: #fff;
+}
+.kitchen-search svg {
+  color: #718177;
+  flex: 0 0 auto;
+}
+.kitchen-search input {
+  width: 100%;
+  min-height: 39px;
+  padding: 0;
+  border: 0;
+}
+.kitchen-recipe-card {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #e6eeea;
+}
+.kitchen-recipe-card > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.kitchen-recipe-card strong {
+  font-size: 16px;
+}
+.kitchen-recipe-card small,
+.kitchen-recipe-card span {
+  color: #718177;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.kitchen-basic-grid {
+  margin-bottom: 22px;
+}
+.kitchen-ingredient-card {
+  padding: 13px;
+  border: 1px solid #dce5e0;
+  background: #fbfcfb;
+}
+.kitchen-ingredient-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.kitchen-ingredient-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.5fr) repeat(3, minmax(92px, 0.7fr));
+  gap: 9px;
+}
+.kitchen-field-wide {
+  grid-column: span 2;
+}
+.kitchen-check-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 12px;
+}
+.kitchen-check-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #53675e;
+  font-size: 12px;
+}
+.kitchen-check-row input {
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
+}
+.kitchen-check-row .text-command {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--module-accent);
+}
+.kitchen-supplemental {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 9px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--module-pale);
+}
+.kitchen-supplemental > strong {
+  grid-column: 1 / -1;
+  color: var(--module-accent);
+  font-size: 13px;
+}
+.kitchen-inline-empty {
+  padding: 10px 0;
+}
+.kitchen-editor-actions {
+  justify-content: flex-end;
+  margin-top: 22px;
+}
 
 .family-section, .baby-section { padding-left: 4px; padding-right: 4px; }
 .family-details { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 15px; }
@@ -153,7 +468,82 @@
 .baby-day-header h2 { margin: 0; font-size: 24px; }
 .baby-day-header label { color: #507360; }
 .baby-day-header input { width: auto; }
-.baby-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #d8e2dd; border: 1px solid #d8e2dd; }
+/* 2026-09-30 Codex: Appleカレンダーを参考に、月全体と記録の有無を同時に確認できる構成。 */
+.baby-calendar { overflow: hidden; border: 1px solid #d9e1dd; background: #fff; }
+.baby-calendar-header {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto 42px;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border-bottom: 1px solid #e1e7e4;
+}
+.baby-calendar-header h2 { margin: 0; font-size: 20px; text-align: center; }
+.baby-calendar-today {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: #e7f1ec;
+  color: #2e6e54;
+  font-weight: 700;
+}
+.baby-calendar-weekdays, .baby-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.baby-calendar-weekdays span { padding: 7px 0; color: #718078; font-size: 12px; text-align: center; }
+.baby-calendar-weekdays span:first-child { color: #c44d51; }
+.baby-calendar-weekdays span:last-child { color: #3970ac; }
+.baby-calendar-grid button {
+  position: relative;
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-rows: 26px 12px auto;
+  justify-items: center;
+  align-content: start;
+  gap: 3px;
+  padding: 7px 3px 4px;
+  border: 0;
+  border-top: 1px solid #edf0ee;
+  border-right: 1px solid #edf0ee;
+  background: #fff;
+  color: #26362f;
+}
+.baby-calendar-grid button:nth-child(7n) { border-right: 0; }
+.baby-calendar-grid button > span:first-child {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-variant-numeric: tabular-nums;
+}
+.baby-calendar-grid button.is-outside { color: #a7b0ab; background: #fafbfa; }
+.baby-calendar-grid button.is-today > span:first-child { background: #dbebe3; color: #205f46; font-weight: 800; }
+.baby-calendar-grid button.is-selected { box-shadow: inset 0 0 0 2px #4c8b70; z-index: 1; }
+.baby-calendar-dots { min-width: 0; display: flex; justify-content: center; gap: 3px; }
+.baby-calendar-dots i { width: 6px; height: 6px; border-radius: 50%; background: #73877b; }
+.baby-calendar-dots .is-feed { background: #de8552; }
+.baby-calendar-dots .is-diaper { background: #3e83b9; }
+.baby-calendar-dots .is-sleep { background: #7768ad; }
+.baby-calendar-dots .is-bath { background: #26a09a; }
+.baby-calendar-dots .is-temperature { background: #cf5960; }
+.baby-calendar-grid small { color: #77877e; font-size: 10px; }
+.baby-quick-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.baby-quick-actions button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #cddbd3;
+  border-radius: 6px;
+  background: #fff;
+  color: #315e4b;
+  font-weight: 700;
+}
+.baby-quick-actions button:hover { background: #edf5f1; }
+.baby-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: #d8e2dd; border: 1px solid #d8e2dd; }
 .baby-summary > div { background: #fff; min-height: 100px; padding: 14px; display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-content: start; }
 .baby-summary svg { color: #2d705d; }
 .baby-summary span { color: #697e70; font-size: 12px; }
@@ -169,12 +559,16 @@
 .baby-event p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 @media (max-width: 800px) {
-  .portal-modules, .meal-plan-layout, .recipe-layout, .baby-log-layout, .cook-layout { grid-template-columns: 1fr; }
+  .portal-modules, .meal-plan-layout, .recipe-layout, .baby-log-layout, .cook-layout,
+  .kitchen-shopping-layout, .kitchen-recipe-layout, .kitchen-shopping-columns { grid-template-columns: 1fr; }
+  .kitchen-selection-section, .kitchen-recipe-library { position: static; }
   .portal-module { min-height: 112px; flex-direction: row; align-items: center; gap: 18px; }
   .portal-module-icon { margin: 0; flex: 0 0 54px; }
   .portal-module > svg { margin: 0 0 0 auto; }
   .module-brand { display: none; }
   .baby-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .baby-summary > div:last-child { grid-column: 1 / -1; }
+  .kitchen-manual-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .layout-portal-link { min-width: 46px; font-size: 0; justify-content: center; }
 }
 @media (max-width: 520px) {
@@ -183,8 +577,23 @@
   .module-main { padding: 14px 14px 50px; }
   .module-form-grid { grid-template-columns: 1fr; }
   .module-span { grid-column: auto; }
+  .module-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+  .module-tabs button { min-width: 0; justify-content: center; gap: 4px; padding: 0 4px; white-space: normal; }
   .meal-plan-row { grid-template-columns: minmax(0, 1fr) 68px 68px 32px; gap: 5px; }
   .ingredient-edit-row { grid-template-columns: minmax(0, 1fr) 60px 65px 32px; gap: 4px; }
   .ingredient-edit-row input { padding: 0 5px; }
   .event-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .baby-calendar-header { grid-template-columns: 38px minmax(0, 1fr) auto 38px; padding-inline: 4px; }
+  .baby-calendar-header h2 { font-size: 17px; }
+  .baby-calendar-grid button { min-height: 58px; grid-template-rows: 24px 9px auto; padding-inline: 1px; }
+  .baby-calendar-dots i { width: 5px; height: 5px; }
+  .baby-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kitchen-manual-form { grid-template-columns: 1fr; }
+  .kitchen-manual-list .kitchen-shopping-row { grid-template-columns: 22px minmax(0, 1fr) auto 34px; }
+  .kitchen-selection-row { grid-template-columns: minmax(0, 1fr) 66px 66px 32px; gap: 5px; }
+  .kitchen-ingredient-grid, .kitchen-supplemental { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kitchen-field-wide { grid-column: 1 / -1; }
+  .kitchen-check-row { align-items: flex-start; flex-direction: column; }
+  .kitchen-check-row .text-command { margin-left: 0; }
+  .kitchen-recipe-card { align-items: flex-start; }
 }

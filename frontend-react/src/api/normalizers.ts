@@ -320,3 +320,104 @@ export function fileToDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+const AI_RECEIPT_MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const AI_RECEIPT_MAX_IMAGE_DIMENSION = 2048;
+
+export type PreparedReceiptImage = {
+  dataUrl: string;
+  mimeType: "image/jpeg";
+};
+
+export async function prepareReceiptImage(file: File): Promise<PreparedReceiptImage> {
+  /**
+   * AI解析用画像をAPI Gatewayの上限内に収まるJPEGへ変換する。
+   *
+   * Args:
+   *   file: ユーザーが選択したレシート画像。
+   *
+   * Returns:
+   *   PreparedReceiptImage: 圧縮済みData URLとMIMEタイプ。
+   */
+  if (file.type && !file.type.startsWith("image/")) {
+    throw new Error("画像ファイルを選択してください。");
+  }
+
+  const image = await loadLocalImage(file);
+  const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
+  if (!longestSide) {
+    throw new Error("画像のサイズを取得できませんでした。");
+  }
+
+  const initialScale = Math.min(1, AI_RECEIPT_MAX_IMAGE_DIMENSION / longestSide);
+  let width = Math.max(1, Math.round(image.naturalWidth * initialScale));
+  let height = Math.max(1, Math.round(image.naturalHeight * initialScale));
+  let lastBlob: Blob | null = null;
+
+  // Geminiへ安定して渡せるよう、Base64化前のJPEGを2MB以下まで段階的に圧縮する。
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("画像を処理できませんでした。");
+    }
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, 0, 0, width, height);
+
+    const quality = Math.max(0.56, 0.88 - attempt * 0.06);
+    lastBlob = await canvasToJpegBlob(canvas, quality);
+    if (lastBlob.size <= AI_RECEIPT_MAX_IMAGE_BYTES) {
+      return {
+        dataUrl: await blobToDataUrl(lastBlob),
+        mimeType: "image/jpeg"
+      };
+    }
+
+    if (attempt >= 2) {
+      width = Math.max(1, Math.round(width * 0.85));
+      height = Math.max(1, Math.round(height * 0.85));
+    }
+  }
+
+  throw new Error("画像を送信可能なサイズまで圧縮できませんでした。別の画像を選択してください。");
+}
+
+function loadLocalImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("画像を読み込めませんでした。JPEGまたはPNGで再度選択してください。"));
+    };
+    image.src = objectUrl;
+  });
+}
+
+function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("画像をJPEGへ変換できませんでした。"));
+    }, "image/jpeg", quality);
+  });
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}

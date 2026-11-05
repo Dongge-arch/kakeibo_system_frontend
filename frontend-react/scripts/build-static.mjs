@@ -99,16 +99,20 @@ function toPublicPath(path) {
 
 async function ensureRuntimeConfig() {
   const configPath = resolve(distDir, "config.js");
-  try {
-    await access(configPath);
-    return;
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
+  const apiBaseUrl = process.env.VITE_API_BASE_URL || "";
+  const apiKey = process.env.VITE_API_KEY || "";
+  if (!apiBaseUrl && !apiKey) {
+    try {
+      await access(configPath);
+      return;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
   }
 
   const config = {
-    apiBaseUrl: process.env.VITE_API_BASE_URL || "",
-    apiKey: process.env.VITE_API_KEY || ""
+    apiBaseUrl,
+    apiKey
   };
   const js = `window.__KAKEIBO_CONFIG__ = ${JSON.stringify(config, null, 2)};\n`;
   await writeFile(configPath, js, "utf8");

@@ -1,7 +1,7 @@
 import { Camera, GalleryHorizontalEnd, LibraryBig, LoaderCircle, ScanSearch, TextCursorInput } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
-import { fileToDataUrl, invoiceDigits, parseNumber, toTaxFlag } from "../api/normalizers";
+import { invoiceDigits, parseNumber, prepareReceiptImage, toTaxFlag } from "../api/normalizers";
 import type { Category1, Category2, ReceiptForm as ReceiptFormType, ReceiptItem, TaxFlag } from "../api/types";
 import { emptyReceipt, ReceiptForm } from "../components/ReceiptForm";
 
@@ -27,15 +27,26 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [captured, setCaptured] = useState(false);
+  const [preparingImage, setPreparingImage] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
 
   async function pickImage(file?: File) {
     if (!file) return;
     stopCamera();
-    setMimeType(file.type || "image/jpeg");
-    setImage(await fileToDataUrl(file));
-    setCaptured(true);
+    setPreparingImage(true);
+    try {
+      const prepared = await prepareReceiptImage(file);
+      setMimeType(prepared.mimeType);
+      setImage(prepared.dataUrl);
+      setCaptured(true);
+    } catch (error) {
+      setImage("");
+      setCaptured(false);
+      notify((error as Error).message, "error");
+    } finally {
+      setPreparingImage(false);
+    }
   }
 
   function stopCamera() {
@@ -91,7 +102,8 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-    const dataUrl = canvas.toDataURL(mimeType);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
+    setMimeType("image/jpeg");
     setImage(dataUrl);
     setCaptured(true);
     stopCamera();
@@ -277,13 +289,13 @@ export function AiReceiptPage({ category1, category2, onSaved, onOpenLibrary, no
               <div className="upload-actions">
                 {!image ? (
                   <>
-                    <p className="ai-upload-guidance">レシートを撮影するか、写真から選択してください。</p>
-                    <button type="button" className="command-button command-button--ghost" onClick={cameraActive ? captureFrame : startCamera}>
+                    <p className="ai-upload-guidance">{preparingImage ? "送信用に画像を圧縮しています..." : "レシートを撮影するか、写真から選択してください。"}</p>
+                    <button type="button" className="command-button command-button--ghost" disabled={preparingImage} onClick={cameraActive ? captureFrame : startCamera}>
                       <Camera size={17} /> {cameraActive ? "撮影" : "カメラ起動"}
                     </button>
                     <label className="command-button command-button--ghost">
                       <GalleryHorizontalEnd size={17} /> 写真
-                      <input type="file" accept="image/*" onChange={event => pickImage(event.target.files?.[0])} />
+                      <input type="file" accept="image/*" disabled={preparingImage} onChange={event => pickImage(event.target.files?.[0])} />
                     </label>
                   </>
                 ) : (

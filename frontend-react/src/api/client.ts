@@ -18,7 +18,20 @@
   ReceiptSearchCondition,
   SalaryCategory
 } from "./types";
-import type { Baby, BabyDay, BabyEvent, Family, Recipe, ShoppingPlan, PlanItem } from "./homeTypes";
+import type {
+  Baby,
+  BabyDay,
+  BabyEvent,
+  BabyMonth,
+  ExportFile,
+  Family,
+  ManualShoppingItem,
+  MasterIngredient,
+  Recipe,
+  RecipeSelection,
+  ShoppingPlan,
+  ShoppingPreview
+} from "./homeTypes";
 
 type RuntimeFrontendConfig = {
   apiBaseUrl?: string;
@@ -326,11 +339,17 @@ export function storeSession(session: AuthSession | null): void {
 export const api = {
   // 画面で使うAPIを機能ごとにまとめる薄いクライアント。
   meal: {
-    recipes: () => get<Recipe[]>("/meal/recipes"),
-    saveRecipe: (recipe: Recipe) => post<{ recipeId: string }>("/meal/recipes", { recipe }),
-    deleteRecipe: (recipeId: string) => remove<{ ok: boolean }>(`/meal/recipes/${encodeURIComponent(recipeId)}`),
-    plan: () => get<ShoppingPlan>("/meal/plan"),
-    savePlan: (items: PlanItem[], checked: string[]) => put<ShoppingPlan>("/meal/plan", { items, checked })
+    recipes: () => get<Recipe[]>("/kitchen/recipes"),
+    saveRecipe: (recipe: Recipe) => post<{ recipeId: string }>("/kitchen/recipes", { recipe }),
+    deleteRecipe: (recipeId: string) => remove<{ ok: boolean }>(`/kitchen/recipes/${encodeURIComponent(recipeId)}`),
+    ingredientMaster: () => get<MasterIngredient[]>("/kitchen/ingredient-master"),
+    plan: () => get<ShoppingPlan>("/kitchen/plan"),
+    savePlan: (selections: RecipeSelection[], checked: string[], manualItems: ManualShoppingItem[]) =>
+      put<ShoppingPlan>("/kitchen/plan", { selections, checked, manualItems }),
+    preview: (selections: RecipeSelection[]) =>
+      post<ShoppingPreview>("/kitchen/shopping/preview", { selections }),
+    exportFile: (selections: RecipeSelection[], format: "pdf" | "xlsx", layout: "mobile" | "desktop", manualItems: ManualShoppingItem[]) =>
+      post<ExportFile>("/kitchen/shopping/export", { selections, format, layout, manualItems })
   },
   childcare: {
     families: () => get<Family[]>("/childcare/families"),
@@ -344,6 +363,7 @@ export const api = {
       : post<{ babyId: string }>("/childcare/babies", { baby }),
     deleteBaby: (babyId: string) => remove<{ ok: boolean }>(`/childcare/babies/${encodeURIComponent(babyId)}`),
     day: (babyId: string, day: string) => get<BabyDay>(`/childcare/babies/${encodeURIComponent(babyId)}/events?day=${encodeURIComponent(day)}`),
+    month: (babyId: string, month: string) => get<BabyMonth>(`/childcare/babies/${encodeURIComponent(babyId)}/events?month=${encodeURIComponent(month)}`),
     saveEvent: (event: BabyEvent) => event.eventId
       ? put<{ eventId: string }>(`/childcare/babies/${encodeURIComponent(event.babyId)}/events/${encodeURIComponent(event.eventId)}`, { event })
       : post<{ eventId: string }>(`/childcare/babies/${encodeURIComponent(event.babyId)}/events`, { event }),

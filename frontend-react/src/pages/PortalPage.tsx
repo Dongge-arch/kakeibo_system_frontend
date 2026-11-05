@@ -1,7 +1,7 @@
 import { ArrowRight, Baby, BookOpenText, ChartNoAxesCombined, LogIn, LogOut, NotebookTabs, ShoppingBasket } from "lucide-react";
 import type { AuthSession } from "../api/types";
 
-export type PortalModule = "kakeibo" | "meal" | "childcare";
+export type PortalModule = "kakeibo" | "kitchen" | "childcare";
 
 type Props = {
   session: AuthSession | null;
@@ -12,7 +12,7 @@ type Props = {
 
 const modules = [
   { key: "kakeibo", name: "家計簿", detail: "出費・入金・予算", icon: ChartNoAxesCombined, className: "portal-module--money" },
-  { key: "meal", name: "献立ノート", detail: "レシピ・買い物リスト", icon: ShoppingBasket, className: "portal-module--meal" },
+  { key: "kitchen", name: "キッチン", detail: "レシピ・買い物リスト・調理", icon: ShoppingBasket, className: "portal-module--kitchen" },
   { key: "childcare", name: "育児ノート", detail: "赤ちゃんの記録・家族共有", icon: Baby, className: "portal-module--baby" }
 ] as const;
 
