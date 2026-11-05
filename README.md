@@ -20,6 +20,7 @@ home_kakeibo_frontend_exe/
   run_frontend.py              ローカル実行用ランナー
   run_frontend_dev.bat         開発起動
   build_frontend_exe.bat       exe 作成
+  deploy_frontend_aws.ps1      バックアップ付きAWS本番デプロイ
   frontend-config.example.json ローカル設定例
   frontend-config.json         ローカル設定ファイル、Git 管理対象外
 ```
@@ -58,19 +59,14 @@ cd C:\Users\董 昊哲\Desktop\home_kakeibo_frontend_exe
 
 ## CloudFront/S3 への公開
 
-1. `frontend-react` で本番ビルドを作成します。
-2. `frontend-react/dist` の中身だけを S3 バケットにアップロードします。
-3. CloudFront の Default root object は `index.html` にします。
-4. S3 バケットはパブリック公開せず、CloudFront OAC だけを許可します。
-5. 更新後は CloudFront のキャッシュ削除で `/*` を無効化します。
+本番公開は必ず `deploy_frontend_aws.ps1` を使います。スクリプトは本番ビルド後、現在のオンライン版を `bk/日時-commit番号/` へバックアップし、バックアップを確認できた場合だけ新しい版を配布します。`bk/` は旧資源の整理対象に含めません。
 
 ```powershell
-cd C:\Users\董 昊哲\Desktop\home_kakeibo_frontend_exe\frontend-react
-npm install
-npm run build
+cd E:\14_home_system\home_kakeibo_frontend_exe
+.\deploy_frontend_aws.ps1
 ```
 
-S3 には `index.html`、`config.js`、`assets/` が入っていれば基本的に動きます。
+配布先や AWS profile を変える場合だけ、`-Bucket`、`-DistributionId`、`-Profile`、`-Region` を指定します。S3 には公開用の `index.html`、`config.js`、`assets/` と、回復用の `bk/` が保存されます。
 
 ## レスポンシブレイアウト
 
