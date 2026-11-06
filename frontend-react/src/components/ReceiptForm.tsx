@@ -369,22 +369,32 @@ export function ReceiptForm({
             <h2>支出登録</h2>
           </div>
           <div className="total-pill">
-            <label htmlFor="receipt-total">レシート合計</label>
-            <div className="receipt-total-input">
-              <span>¥</span>
-              <input
-                id="receipt-total"
-                type="number"
-                step="0.01"
-                value={numberFieldValue(form.totalPrice)}
-                onChange={event => patch({ totalPrice: numberFieldParse(event.target.value) })}
-              />
+            <div className="total-pill-main">
+              <label htmlFor="receipt-total">レシート合計</label>
+              <div className="receipt-total-input">
+                <span>¥</span>
+                <input
+                  id="receipt-total"
+                  type="number"
+                  step="0.01"
+                  value={numberFieldValue(form.totalPrice)}
+                  onChange={event => patch({ totalPrice: numberFieldParse(event.target.value) })}
+                />
+              </div>
             </div>
-            <small>明細合計 {yen(detailTotal)}</small>
-            {totalDifference !== 0 && <small>差額 {yen(totalDifference)}</small>}
+            <div className="total-pill-breakdown">
+              <span><small>明細合計</small><b>{yen(detailTotal)}</b></span>
+              <span className={totalDifference === 0 ? "is-balanced" : "is-difference"}>
+                <small>差額</small><b>{yen(totalDifference)}</b>
+              </span>
+            </div>
           </div>
         </div>
 
+        <div className="receipt-form-section-heading">
+          <span aria-hidden="true">1</span>
+          <h3>基本情報</h3>
+        </div>
         <div className="form-grid form-grid--receipt">
           <label className="field invoice-field">
             <span>インボイス登録番号（任意）</span>
@@ -423,39 +433,51 @@ export function ReceiptForm({
           </label>
         </div>
 
-        <div className="receipt-meta-row">
-          <fieldset className="segmented receipt-tax-mode">
-            <legend>単価の税区分</legend>
-            <button type="button" className={form.taxFlag === "1" ? "is-active" : ""} onClick={() => updateTaxFlag("1")}>
-              単価は税込
-            </button>
-            <button type="button" className={form.taxFlag === "0" ? "is-active" : ""} onClick={() => updateTaxFlag("0")}>
-              単価は税抜
-            </button>
-            <small className="tax-mode-help">
-              {form.taxFlag === "0"
-                ? "入力した単価を税抜価格として、税込金額を計算します。"
-                : "入力した単価を税込価格として扱います。"}
-            </small>
-          </fieldset>
-          <div className="receipt-logo-field">
-            <span className="receipt-field-label">店舗画像（任意）</span>
-            <div className="logo-strip">
-              <div className="logo-preview">
-                {logoSrc ? <img src={logoSrc} alt="" /> : <span>店舗画像なし</span>}
+        <div className="receipt-meta-section">
+          <div className="receipt-form-section-heading">
+            <span aria-hidden="true">2</span>
+            <h3>税区分・店舗画像</h3>
+          </div>
+          <div className="receipt-meta-row">
+            <fieldset className="segmented receipt-tax-mode">
+              <legend>単価の税区分</legend>
+              <button type="button" className={form.taxFlag === "1" ? "is-active" : ""} onClick={() => updateTaxFlag("1")}>
+                単価は税込
+              </button>
+              <button type="button" className={form.taxFlag === "0" ? "is-active" : ""} onClick={() => updateTaxFlag("0")}>
+                単価は税抜
+              </button>
+              <small className="tax-mode-help">
+                {form.taxFlag === "0"
+                  ? "入力した単価を税抜価格として、税込金額を計算します。"
+                  : "入力した単価を税込価格として扱います。"}
+              </small>
+            </fieldset>
+            <div className="receipt-logo-field">
+              <span className="receipt-field-label">店舗画像（任意）</span>
+              <div className="logo-strip">
+                <div className="logo-preview">
+                  {logoSrc ? <img src={logoSrc} alt="" /> : <span>店舗画像なし</span>}
+                </div>
+                <label className="file-button">
+                  店舗画像を選択
+                  <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => onLogoFile(event.target.files?.[0])} />
+                </label>
               </div>
-              <label className="file-button">
-                店舗画像を選択
-                <input type="file" accept="image/*,.svg,.webp,.avif,.gif,.bmp,.ico,.tif,.tiff" onChange={event => onLogoFile(event.target.files?.[0])} />
-              </label>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="panel">
+      <section className="panel receipt-entry-detail-panel">
         <div className="table-toolbar">
-          <h3>明細</h3>
+          <div className="receipt-detail-heading">
+            <div className="receipt-form-section-heading">
+              <span aria-hidden="true">3</span>
+              <h3>明細</h3>
+            </div>
+            <em>{form.receiptDetails.length}件</em>
+          </div>
           <div className="receipt-detail-tools">
             <div className="receipt-bulk-fields">
               <label className="field">

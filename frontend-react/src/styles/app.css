@@ -1068,7 +1068,7 @@ img {
 
 .ai-page-grid {
   grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
-  align-items: stretch;
+  align-items: start;
 }
 
 .ai-page-grid > .receipt-form {
@@ -6122,5 +6122,358 @@ textarea:focus-visible,
 
   .receipt-filter-drawer .drawer-actions .command-button {
     flex: 1 1 0;
+  }
+}
+
+/* 2026-11-06 Codex: レシート入力を基本情報・税区分・明細の順に整理し、金額確認の視認性を高める。 */
+.receipt-form .section-heading {
+  align-items: flex-start;
+}
+
+.receipt-form-section-heading {
+  min-width: 0;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.receipt-form-section-heading > span {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  background: var(--teal);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.receipt-form-section-heading h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.receipt-hero-panel > .receipt-form-section-heading {
+  margin: 4px 0 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+}
+
+.receipt-meta-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+}
+
+.receipt-meta-section > .receipt-form-section-heading {
+  margin-bottom: 12px;
+}
+
+.receipt-meta-section .receipt-meta-row {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.receipt-form--compact .field > span,
+.receipt-form--compact .segmented legend,
+.receipt-form--compact .receipt-field-label {
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+  font-size: 12px;
+}
+
+.total-pill {
+  min-width: 330px;
+  grid-template-columns: minmax(145px, 1fr) auto;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.total-pill-main {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.total-pill-breakdown {
+  min-width: 132px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, .18);
+  display: grid;
+  align-content: center;
+  gap: 7px;
+}
+
+.total-pill-breakdown > span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(56px, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.total-pill-breakdown small {
+  color: rgba(255, 255, 255, .64);
+  white-space: nowrap;
+}
+
+.total-pill-breakdown b {
+  color: #fff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.total-pill-breakdown .is-difference b {
+  color: #ffb5aa;
+}
+
+.total-pill-breakdown .is-balanced b {
+  color: #bfe5c4;
+}
+
+.receipt-entry-detail-panel .table-toolbar {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
+  grid-template-columns: minmax(110px, 140px) minmax(0, 1fr);
+}
+
+.receipt-detail-heading {
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.receipt-detail-heading em {
+  min-width: 34px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--teal);
+  background: var(--teal-2);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.receipt-detail-tools {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--soft) 72%, var(--panel));
+}
+
+.receipt-entry-detail-panel .line-table-head {
+  min-height: 42px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  border-radius: 7px;
+  padding: 2px 6px;
+  color: color-mix(in srgb, var(--text) 68%, var(--muted));
+  background: var(--soft);
+}
+
+.receipt-entry-detail-panel .line-row {
+  padding: 10px 6px;
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  transition: background-color .18s ease;
+}
+
+.receipt-entry-detail-panel .line-row:focus-within {
+  background: color-mix(in srgb, var(--teal) 5%, var(--panel));
+}
+
+.receipt-entry-detail-panel .line-row .line-field:nth-child(n + 4):nth-child(-n + 7) input {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.receipt-entry-detail-panel .receipt-detail-note {
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+}
+
+.receipt-form .sticky-submit {
+  min-height: 76px;
+  padding: 13px 16px;
+  border-top: 3px solid var(--teal);
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+}
+
+.receipt-form .sticky-submit strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.receipt-form .sticky-submit .command-button {
+  min-width: 180px;
+  min-height: 48px;
+  font-weight: 900;
+}
+
+@media (min-width: 1181px) {
+  :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-form--compact .form-grid--receipt,
+  .receipt-form--compact .form-grid--receipt {
+    grid-template-columns:
+      minmax(250px, 1.2fr)
+      minmax(230px, 1fr)
+      minmax(160px, .65fr)
+      minmax(130px, .55fr);
+    gap: 12px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1180px) {
+  :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-form--compact .form-grid--receipt,
+  .receipt-form--compact .form-grid--receipt {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (min-width: 721px) {
+  .receipt-form--compact .line-table {
+    overflow: visible;
+  }
+
+  :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-form--compact .line-table-head,
+  .receipt-form--compact .line-table-head {
+    display: none;
+  }
+
+  :root[data-device-page="desktop-landscape"] .device-page--desktop-landscape .receipt-form--compact .line-row,
+  .receipt-form--compact .line-row {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px 10px;
+    margin-bottom: 10px;
+    padding: 13px;
+    border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--panel) 96%, var(--soft));
+  }
+
+  .receipt-form--compact .line-field {
+    display: grid;
+    gap: 5px;
+    align-content: start;
+  }
+
+  .receipt-form--compact .line-field::before {
+    content: attr(data-label);
+    min-height: 15px;
+    color: color-mix(in srgb, var(--text) 68%, var(--muted));
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .receipt-form--compact .line-field:nth-child(1),
+  .receipt-form--compact .line-field:nth-child(2),
+  .receipt-form--compact .line-field:nth-child(3) {
+    grid-column: span 4;
+  }
+
+  .receipt-form--compact .line-field:nth-child(4) {
+    grid-column: span 2;
+  }
+
+  .receipt-form--compact .line-field:nth-child(5),
+  .receipt-form--compact .line-field:nth-child(6),
+  .receipt-form--compact .line-field:nth-child(7) {
+    grid-column: span 3;
+  }
+
+  .receipt-form--compact .line-field:nth-child(8) {
+    grid-column: span 1;
+    align-self: end;
+  }
+
+  .receipt-form--compact .line-field--action::before {
+    content: "";
+  }
+
+  .receipt-form--compact .line-field--total small {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .receipt-form .section-heading {
+    gap: 12px;
+  }
+
+  .receipt-form .total-pill {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .receipt-meta-section {
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+
+  .receipt-entry-detail-panel .table-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-detail-heading {
+    min-height: 32px;
+  }
+
+  .receipt-detail-tools {
+    padding: 10px;
+  }
+
+  .receipt-form--compact .receipt-detail-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-form--compact .receipt-detail-actions .command-button {
+    grid-column: 1;
+  }
+
+  .receipt-entry-detail-panel .line-row {
+    padding: 12px;
+    border: 1px solid var(--line);
+  }
+
+  .receipt-form .sticky-submit {
+    min-height: 0;
+    gap: 12px;
+  }
+
+  .receipt-form .sticky-submit .command-button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .receipt-form .total-pill {
+    grid-template-columns: 1fr;
+  }
+
+  .total-pill-breakdown {
+    min-width: 0;
+    padding-top: 9px;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, .18);
+    border-left: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
